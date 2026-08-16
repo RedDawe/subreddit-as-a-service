@@ -146,15 +146,29 @@ def build(plan_path, prices_dir, out_path, horizons=(3, 5), benchmark="SPY"):
              {"n_mentions": r["n_mentions"], "n_authors": r["n_authors"],
               "entity_id": r["entity_id"]})
 
-    # Controls are evaluated at the same formation dates as the treated set, so
-    # calendar exposure is identical and cannot explain a difference. Each
-    # control is assigned a formation date drawn from the treated distribution.
+    # Controls must carry the same calendar exposure as the treated set,
+    # otherwise a difference in returns could just be a difference in when the
+    # clock started - and 2019, 2020 and 2021 entry points had very different
+    # forward markets.
+    #
+    # Drawing each control's formation date at random from the treated
+    # distribution is right only in expectation; at n=220 the realised calendar
+    # mix can drift from the treated mix by chance. Assigning dates by walking
+    # the sorted treated dates in step makes the marginal distribution match
+    # exactly rather than on average. The shuffle keeps date and control
+    # identity independent.
     import random
     rng = random.Random(20260816)
-    formation_dates = [r["first_mention"] for r in plan["treated"]]
-    for c in plan["controls"]:
-        emit(c, "control", rng.choice(formation_dates),
-             {"n_mentions": 0, "n_authors": 0, "entity_id": None})
+    treated_dates = sorted(r["first_mention"] for r in plan["treated"])
+    controls = list(plan["controls"])
+    rng.shuffle(controls)
+    n = len(controls)
+    for i, c in enumerate(controls):
+        # even coverage of the treated date distribution
+        d = treated_dates[int(i * len(treated_dates) / n)] if treated_dates else None
+        if d is None:
+            continue
+        emit(c, "control", d, {"n_mentions": 0, "n_authors": 0, "entity_id": None})
 
     with open(out_path, "w") as f:
         for r in rows:
