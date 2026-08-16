@@ -60,6 +60,7 @@ MONEY_CUE = re.compile(r"\$\s?\d|\d+\s?(x|%)|\b\d+\.\d+\b")
 # "(NVDA)", "NVDA:", "NVDA -", i.e. syntax that flags a symbol as a symbol
 SYMBOL_SYNTAX = re.compile(r"[(\[]([A-Z]{1,5})[)\]]|\b([A-Z]{2,5})\s*[:\-–]\s")
 
+WORD = re.compile(r"[A-Za-z0-9&]+")
 CASHTAG = re.compile(r"\$([A-Z]{1,5})(?:\.([A-Z]))?\b")
 UPPER_TOKEN = re.compile(r"\b([A-Z]{1,5})(?:\.([A-Z]))?\b")
 
@@ -75,13 +76,15 @@ class Extractor:
         self.by_ticker, self.name_aliases = build()
         self.name_aliases = dict(self.name_aliases)
         self.name_aliases.update(MANUAL_ALIASES)
-        # Longest-first so "berkshire hathaway" wins over "berkshire".
-        names = sorted(self.name_aliases, key=len, reverse=True)
-        # Only alphabetic aliases of reasonable length are worth regexing.
-        names = [n for n in names if len(n) >= 5 and n.replace(" ", "").isalpha()]
-        self.name_re = re.compile(
-            r"\b(" + "|".join(re.escape(n) for n in names) + r")\b", re.I
-        )
+        # Company names are matched by n-gram lookup, NOT by one giant regex
+        # alternation. A 9k-branch alternation makes Python's re scan every
+        # branch at every position: over a 57M-character corpus that ran at
+        # roughly 20 documents/second and would not have finished. Token lookup
+        # is O(tokens x max_alias_words) and independent of alias-set size.
+        self.aliases = {n: c for n, c in self.name_aliases.items()
+                        if len(n) >= 5 and n.replace(" ", "").replace("&", "").isalnum()}
+        self.max_alias_words = max((a.count(" ") + 1 for a in self.aliases), default=1)
+        self.max_alias_words = min(self.max_alias_words, 4)
         self.cik_to_ticker = {}
         for t, meta in self.by_ticker.items():
             self.cik_to_ticker.setdefault(meta["cik"], t)
@@ -111,24 +114,37 @@ class Extractor:
                            evidence=["cashtag"])
 
     def _names(self, text):
-        for m in self.name_re.finditer(text):
-            surface = m.group(1)
-            alias = surface.lower()
-            cik = self.name_aliases.get(alias)
-            if not cik:
+        toks = [(m.group(0), m.start(), m.end()) for m in WORD.finditer(text)]
+        i = 0
+        while i < len(toks):
+            hit = None
+            # Longest n-gram first so "berkshire hathaway" beats "berkshire".
+            for k in range(min(self.max_alias_words, len(toks) - i), 0, -1):
+                phrase = " ".join(t[0].lower() for t in toks[i:i + k])
+                cik = self.aliases.get(phrase)
+                if cik:
+                    hit = (k, cik, toks[i][1], toks[i + k - 1][2])
+                    break
+            if not hit:
+                i += 1
                 continue
+            k, cik, s, e = hit
+            i += k
+
+            surface = text[s:e]
+            alias = surface.lower()
             evidence = ["company_name"]
             conf = 0.90
             if self._alias_needs_proof(alias):
                 if not surface[:1].isupper():
                     continue                       # "growth" is not Growth Corp
-                if not VALUATION_CUE.search(_context(text, *m.span())):
+                if not VALUATION_CUE.search(_context(text, s, e)):
                     continue
                 evidence.append("capitalised+valuation")
                 conf = 0.75
             yield dict(ticker=self.cik_to_ticker.get(cik, ""), entity_id=cik,
                        channel="name", confidence=conf,
-                       span=m.span(), evidence=evidence)
+                       span=(s, e), evidence=evidence)
 
     def _bare(self, text, doc_cashtags, doc_names):
         for m in UPPER_TOKEN.finditer(text):

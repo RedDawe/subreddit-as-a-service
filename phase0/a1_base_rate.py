@@ -94,24 +94,43 @@ def rolling_12mo(rows):
     return out
 
 
-def verdict(by_year):
-    """State the Phase 0 gate outcome explicitly rather than leaving it to the reader."""
-    recent = {y: v for y, v in by_year.items() if 2015 <= y <= 2024 and v["mentions"] > 200}
-    if not recent:
-        print("\nGATE: insufficient data to judge.")
-        return
-    worst = max(v["ge2"] for v in recent.values())
-    share = worst / INVESTABLE_UNIVERSE
-    print(f"\nGATE: widest annual >=2x funnel is {worst:,} names "
-          f"({share:.1%} of the ~{INVESTABLE_UNIVERSE:,}-name universe).")
-    if share > 0.5:
-        print("  -> FAIL. The sub is not selective; H1 has little room to show lift.")
-    elif share > 0.25:
-        print("  -> MARGINAL. Selective, but the candidate set is large; lift will")
-        print("     need to be strong to be useful as a screener.")
-    else:
-        print("  -> PASS. The funnel is materially narrower than the universe,")
-        print("     so lift is worth measuring. Proceed to Phase 1 validation.")
+def verdict(by_year, as_of_year=2026):
+    """State the Phase 0 gate outcome explicitly rather than leaving it to the reader.
+
+    Judged only on cohorts that can actually carry a forward return. A cohort
+    formed in 2025 has no 5-year outcome measurable in 2026, so including it in
+    the gate would fail the project on data the study could never use. Design
+    doc 4.3 sets the horizons; this applies them.
+    """
+    for horizon, label in ((5, "5-year"), (3, "3-year")):
+        last = as_of_year - horizon
+        usable = {y: v for y, v in by_year.items()
+                  if 2015 <= y <= last and v["mentions"] > 200}
+        print(f"\nGATE ({label} horizon, cohorts <= {last}):")
+        if not usable:
+            print("  insufficient data to judge.")
+            continue
+        worst_year = max(usable, key=lambda y: usable[y]["ge2"])
+        worst = usable[worst_year]["ge2"]
+        share = worst / INVESTABLE_UNIVERSE
+        print(f"  widest usable annual >=2x funnel is {worst:,} names in "
+              f"{worst_year} ({share:.1%} of ~{INVESTABLE_UNIVERSE:,}).")
+        if share > 0.5:
+            print("  -> FAIL. The sub is not selective; H1 has little room to show lift.")
+        elif share > 0.25:
+            print("  -> MARGINAL. Selective, but the candidate set is large; lift")
+            print("     will need to be strong to be useful as a screener.")
+        else:
+            print("  -> PASS. The funnel is materially narrower than the universe,")
+            print("     so lift is worth measuring.")
+
+    newest = max(by_year)
+    if by_year[newest]["ge2"] / INVESTABLE_UNIVERSE > 0.25:
+        print(f"\nNOTE: the most recent cohorts are far wider "
+              f"({by_year[newest]['ge2']:,} names >=2x in {newest}). The sub now "
+              "covers a\n  large fraction of the universe, so its value as a "
+              "*filter* is decaying over\n  time even where the historical "
+              "funnel was narrow. Worth reporting as a trend\n  in its own right.")
 
 
 if __name__ == "__main__":

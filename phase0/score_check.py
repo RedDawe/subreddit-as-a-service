@@ -72,6 +72,20 @@ def lag_report(path, sample=None):
         print(f"  {y:<6}{len(ls):>7,}{statistics.median(ls):>16.1f}"
               f"{sum(1 for l in ls if l < 1) / len(ls):>12.1%}")
 
+    # The pooled verdict is meaningless here for the same reason the design doc
+    # forbids pooling cohorts: capture behaviour changed. Older years were
+    # backfilled long after the fact (scores settled, trustworthy); recent years
+    # are captured live at posting time (scores frozen near zero, unusable). The
+    # recent years dominate by volume, so a pooled number describes them alone.
+    print("\nper-year usability:")
+    print(f"  {'year':<6}{'n':>8}{'median lag':>12}{'<24h':>9}  verdict")
+    for y in sorted(by_year):
+        ls = by_year[y]
+        f = sum(1 for l in ls if l < 1) / len(ls)
+        m = statistics.median(ls)
+        v = "UNRELIABLE (captured live)" if (m < 1 or f > 0.5) else "usable"
+        print(f"  {y:<6}{len(ls):>8,}{m:>12.1f}{f:>9.1%}  {v}")
+
     med = statistics.median(lags)
     fast = sum(1 for l in lags if l < 1) / n
     low = zero_scores / n
@@ -92,7 +106,23 @@ def lag_report(path, sample=None):
             print("  names inside a mass of 1-point posts needs the §4.2 structural")
             print("  proxies as a companion, even though the scores are trustworthy.")
         print()
-    if med < 1 or fast > 0.5:
+    usable_years = [y for y, ls in by_year.items()
+                    if statistics.median(ls) >= 1
+                    and sum(1 for l in ls if l < 1) / len(ls) <= 0.5]
+    bad_years = sorted(set(by_year) - set(usable_years))
+    if usable_years and bad_years:
+        print(f"VERDICT: split. Scores are usable through {max(usable_years)} and "
+              f"unreliable from\n  {min(bad_years)} onward, where the archive "
+              "captures posts essentially at creation.")
+        print("  Do NOT read the pooled figures above as a single answer - the "
+              "recent years\n  dominate by volume and describe only themselves.")
+        print(f"  This is good news for the study: §4.3's usable formation cohorts "
+              f"end\n  2021 (5-year) / 2023 (3-year), which sit inside the "
+              "trustworthy era. An\n  upvote-weighted conviction measure is "
+              "defensible there.")
+        print("  Any extension to recent cohorts must switch to the §4.2 structural"
+              "\n  proxies (top-level vs buried, thread reply count, post length).")
+    elif med < 1 or fast > 0.5:
         print("VERDICT: scores were captured close to posting time. Treat archived")
         print("  score as unreliable and fall back to the structural proxies in")
         print("  §4.2 (top-level vs buried, thread reply count, post length).")

@@ -67,6 +67,15 @@ and rejects the §5.2 hazard sentences outright:
     "all of it is key to be honest, so we play it safe"           -> nothing
     "My honest opinion is that growth stocks are expensive"       -> nothing
 
+## Performance note
+
+The company-name channel originally used a single regex alternation over ~9,000
+aliases. Python's `re` scans every branch at every position, so over the 57M-character
+corpus it ran at roughly 20 documents/second and would not have completed. It now
+tokenises and looks up 1- to 4-grams in a dict, which is O(tokens) and independent
+of alias-set size: **62,519 documents in 91 seconds**, with identical output on the
+regression cases above.
+
 ## Known limitation carried forward
 
 `universe.py` builds from SEC EDGAR's **current-state** ticker file. It gives no
