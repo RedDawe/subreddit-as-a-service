@@ -156,6 +156,39 @@ class Tiingo(Adapter):
         return [(row["date"][:10], float(row["adjClose"])) for row in rows
                 if row.get("adjClose") is not None]
 
+    def history_full(self, ticker, start, end):
+        """Same call, but keeping volume - used as a free size/liquidity proxy.
+
+        Tiingo's free tier exposes no market cap or sector, so dollar volume
+        (close x volume) stands in as the size variable for the matched-lift
+        adjustment. It is a well-understood size/liquidity proxy and costs
+        nothing extra, since it rides on a request we are making anyway.
+        """
+        import json
+        import urllib.error
+        import urllib.request
+        if not self.budget.claim(ticker):
+            raise PriceUnavailable(
+                f"monthly unique-symbol cap reached ({self.budget.limit}); "
+                f"{ticker} not fetched. Resets on the 1st."
+            )
+        self.limiter.wait()
+        url = (f"https://api.tiingo.com/tiingo/daily/{ticker}/prices"
+               f"?startDate={start}&endDate={end}&token={self.key}")
+        req = urllib.request.Request(url, headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=90) as r:
+                rows = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return []
+            if e.code == 429:
+                raise PriceUnavailable(f"tiingo rate limited: {e.read()[:200]!r}") from e
+            raise
+        return [{"date": r["date"][:10], "adj_close": r.get("adjClose"),
+                 "close": r.get("close"), "volume": r.get("volume")}
+                for r in rows if r.get("adjClose") is not None]
+
 
 class Massive(Adapter):
     """Massive (formerly Polygon.io) aggregates. Free "Basic" plan.
