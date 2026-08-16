@@ -35,6 +35,31 @@ with what was actually found rather than what was anticipated.
 | 18 | **Name channel is survivor-only** | Flatters | **Quantified, unfixed.** 46% of the ticker vocabulary (8,955 of 19,353) has no company name, because the delisted top-up supplies tickers only. A dead company is findable as `GRIN` but not as "Grindrod". In the 2019-2021 cohorts, 243 of 1,507 entities (16.1%) are ticker-only. Dead names skew to the wipeout tail, so this thins losers more than winners. Fix rejected as disproportionate — see `phase1/QUALITY.md`. |
 | 19 | **Preferreds/warrants in the control pool** | Flatters | **Found and fixed.** Tiingo types preferred shares, warrants, units and exchange test symbols as "Stock". Preferreds are bond-like: they rarely 3x and rarely wipe out, so seeding controls with ~4,000 of them would have depressed the control winner rate and inflated lift. |
 
+## Design choice: the treated set is submissions-only
+
+A1 now includes comments, but the *treated cohort* for the lift analysis is
+defined on submissions alone: names discussed by **≥4 distinct submission
+authors** in 2019–2021 (209 names).
+
+Including comments would define a different treatment. At ≥4 authors it yields
+834 names, four times the monthly symbol quota; the threshold that fits is ≥16
+distinct authors across both channels, giving 207 names.
+
+Those two cohorts **overlap 76%** (158 of 209). The 49 names unique to the
+comments-inclusive set are largely megacaps and meme-adjacent names — ABNB, AMC,
+ASML, CHWY, CLF, CRSP — i.e. things people mention in passing rather than write
+up.
+
+Keeping the submissions definition is the deliberate call, for three reasons:
+it is a cleaner treatment (someone wrote a post, and four different people did),
+it matches the screener use case in §1 (a reader reads posts, not every
+comment), and the 76% overlap means the alternative would give a substantially
+similar answer for a cost of ~50 fresh symbols against a quota already committed.
+
+Direction: unknown. A comment mention is weaker evidence than a writeup, so the
+submissions definition is if anything the higher-conviction signal — which
+should *help* measured lift, and therefore counts as flattering.
+
 ## Bias #4: sector is measurable after all, and the skew is modest
 
 An earlier version of this register said sector could not be controlled for want
