@@ -126,6 +126,29 @@ def bootstrap_lift(treated, controls, label, edges, n_boot=N_BOOT, seed=SEED):
     return (out[int(0.025 * len(out))], out[int(0.975 * len(out))])
 
 
+def common_support(treated, controls, edges):
+    """Restrict both groups to size strata where BOTH are present.
+
+    Post-stratification can only reweight where controls exist. The subreddit
+    discusses large, liquid names while a random draw from the listed universe
+    is mostly small and illiquid, so the two size distributions overlap only
+    partially - on a partial sample 36% of treated weight sat in strata with no
+    controls at all, and reweighting simply renormalised that away in silence.
+
+    Trimming to the common-support region is the standard fix: it gives an
+    honest estimate for a well-defined subpopulation instead of an
+    extrapolation dressed up as an average. The share trimmed is reported, and
+    it is itself a finding - a large trim means the sub's names have few
+    comparable peers, which is informative about H3 (novelty) too.
+    """
+    t_str = {stratum_of(r["dollar_volume"], edges) for r in treated}
+    c_str = {stratum_of(r["dollar_volume"], edges) for r in controls}
+    both = t_str & c_str
+    t = [r for r in treated if stratum_of(r["dollar_volume"], edges) in both]
+    c = [r for r in controls if stratum_of(r["dollar_volume"], edges) in both]
+    return t, c, both
+
+
 def dedupe_by_name(rows):
     """One row per ticker (the earliest formation), so lift is per name."""
     best = {}
@@ -179,6 +202,31 @@ def a2_lift(rows, horizon, out=print):
         if unsup > 0.05:
             out(f"  {'':14}note: {unsup:.0%} of treated weight had no control "
                 f"support in its size stratum")
+
+    # Common-support estimate: the number to lead with when overlap is partial.
+    t_cs, c_cs, strata = common_support(treated, controls, edges)
+    trimmed_t = 1 - len(t_cs) / len(treated)
+    if t_cs and c_cs and trimmed_t > 0.01:
+        out("")
+        out(f"  --- restricted to common support ({len(strata)}/{N_STRATA} strata; "
+            f"{trimmed_t:.0%} of treated names trimmed) ---")
+        out(f"  {'outcome':14}{'treated':>9}{'control':>10}{'ADJUSTED':>10}"
+            f"{'95% CI':>18}")
+        for label in ("winner_3x", "outperformer", "wipeout"):
+            tv = [bool(r[label]) for r in t_cs if r[label] is not None]
+            cv = [bool(r[label]) for r in c_cs if r[label] is not None]
+            if not tv or not cv:
+                continue
+            pt = sum(tv) / len(tv)
+            pc, _ = post_stratified_rate(c_cs, t_cs, label, edges)
+            lift = pt / pc if pc else float("nan")
+            lo, hi = bootstrap_lift(t_cs, c_cs, label, edges)
+            ci = f"[{lo:.2f}, {hi:.2f}]" if lo is not None else "n/a"
+            out(f"  {label:14}{pt:>8.1%}{(pc or 0):>10.1%}{lift:>10.2f}{ci:>18}")
+            res.setdefault("common_support", {})[label] = {
+                "p_treated": pt, "p_control": pc, "adjusted_lift": lift,
+                "ci": [lo, hi], "n_treated": len(tv), "n_control": len(cv)}
+        res.setdefault("common_support", {})["_trimmed_share"] = trimmed_t
 
     med_t = statistics.median(r["forward_return"] for r in treated)
     med_c = statistics.median(r["forward_return"] for r in controls)
