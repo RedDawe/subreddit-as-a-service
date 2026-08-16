@@ -16,6 +16,7 @@ letting every "all" and "key" through, which is the precision/recall trade the
 design doc calls the hard part.
 """
 
+import collections
 import json
 import re
 import sys
@@ -487,9 +488,20 @@ def run(in_path, out_path, doc_type):
     with open(in_path) as f, open(out_path, "w") as out:
         for line in f:
             d = json.loads(line)
-            text = (d.get("title", "") + "\n" + d.get("selftext", "")
-                    if doc_type == "post" else d.get("body", ""))
-            for h in ex.extract(text):
+            title = d.get("title", "") or ""
+            text = (title + "\n" + (d.get("selftext", "") or "")
+                    if doc_type == "post" else (d.get("body", "") or ""))
+            hits = ex.extract(text)
+            # Aboutness proxies, computed here because only this scope sees the
+            # whole document. The extractor finds MENTIONS; whether a document
+            # is *about* a company is a different question, and rather than
+            # guess, these two flags let downstream analysis decide.
+            #   in_title       - named in the title: a strong aboutness signal
+            #   is_primary     - the document's most-mentioned entity
+            counts = collections.Counter(h["entity_id"] for h in hits)
+            primary = counts.most_common(1)[0][0] if counts else None
+            n_entities = len(counts)
+            for h in hits:
                 out.write(json.dumps({
                     "doc_id": d["id"], "doc_type": doc_type,
                     "created_utc": d["created_utc"], "author": d.get("author"),
@@ -498,6 +510,9 @@ def run(in_path, out_path, doc_type):
                     "channel": h["channel"], "confidence": round(h["confidence"], 3),
                     "span_start": h["span"][0], "span_end": h["span"][1],
                     "evidence": h["evidence"],
+                    "in_title": bool(doc_type == "post" and h["span"][0] < len(title)),
+                    "is_primary": h["entity_id"] == primary,
+                    "n_entities_in_doc": n_entities,
                 }, separators=(",", ":")) + "\n")
                 n_hits += 1
             n_docs += 1
