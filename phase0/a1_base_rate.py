@@ -40,14 +40,25 @@ def _pit_universe_sizes():
     return {y: n for y, n in out.items() if n}
 
 
-def load(path, min_conf=0.0):
+def load(paths, min_conf=0.0):
+    """Load one or more mention files. Submissions and comments are unioned.
+
+    Design doc §10 asks whether comments belong in the funnel. They do - they
+    carry most of the volume and most of the bear cases - so this takes a list
+    rather than forcing a submissions-only view.
+    """
+    if isinstance(paths, str):
+        paths = [paths]
     rows = []
-    with open(path) as f:
-        for line in f:
-            r = json.loads(line)
-            if r["confidence"] >= min_conf:
-                r["dt"] = dt.datetime.utcfromtimestamp(r["created_utc"])
-                rows.append(r)
+    for path in paths:
+        if not os.path.exists(path):
+            continue
+        with open(path) as f:
+            for line in f:
+                r = json.loads(line)
+                if r["confidence"] >= min_conf:
+                    r["dt"] = dt.datetime.utcfromtimestamp(r["created_utc"])
+                    rows.append(r)
     return rows
 
 
@@ -157,9 +168,16 @@ def verdict(by_year, as_of_year=2026):
 
 
 if __name__ == "__main__":
-    path = sys.argv[1]
-    min_conf = float(sys.argv[2]) if len(sys.argv) > 2 else 0.0
-    rows = load(path, min_conf)
+    args = [a for a in sys.argv[1:]]
+    min_conf = 0.0
+    paths = []
+    for a in args:
+        try:
+            min_conf = float(a)
+        except ValueError:
+            paths.append(a)
+    rows = load(paths, min_conf)
+    print(f"sources: {', '.join(os.path.basename(p) for p in paths)}")
     if not rows:
         print("no mentions loaded")
         sys.exit(1)
