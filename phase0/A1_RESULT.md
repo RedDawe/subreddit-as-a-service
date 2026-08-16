@@ -6,8 +6,9 @@ Extraction at `--min-conf 0.75` → 139,491 mentions over 4,316 distinct entitie
 > **Headline correction.** Earlier versions of this file reported PASS on a
 > submissions-only corpus. The comments backfill is now complete (119,065
 > comments, 2019-01 → 2022-01, 49,005 mentions) and it changes the verdict:
-> including comments, the widest usable cohort funnel is **28.5%** of the
-> listed universe, which is MARGINAL rather than PASS. The submissions-only
+> including comments, the widest usable cohort funnels are **28.5%** (2021,
+> 5-year horizon) and **30.7%** (2022, 3-year horizon) of the listed universe —
+> MARGINAL rather than PASS, on both horizons. The submissions-only
 > figures are retained below for comparison, not as the answer.
 
 ## Result
@@ -122,9 +123,14 @@ Comments cover 2019-01 → 2022-01, so 2019, 2020 and 2021 are complete. On thos
     2020      3,984     792     386    134       161     5,337     7.2%
     2021     47,825   2,628   1,746    952       984     6,120    28.5%
 
+    2022     68,087   2,937   1,990  1,092     1,158     6,490    30.7%
+
     GATE (5-year, cohorts <= 2021): 1,746 names, 28.5%  -> MARGINAL
-    GATE (3-year, cohorts <= 2023): submissions-only for 2022-23, so the
-                                    comparison is not yet like-for-like
+    GATE (3-year, cohorts <= 2022): 1,990 names, 30.7%  -> MARGINAL
+
+Both horizons land in the same place. 2022 is now complete (the comments
+backfill reaches 2023-02) and is *wider* than 2021, so the 3-year horizon does
+not rescue the gate — it fails it slightly harder.
 
 **2021 is the binding cohort and it is 28.5% of the listed universe.** Reading
 that plainly: in the year that matters most for a 5-year horizon, the subreddit
@@ -137,13 +143,11 @@ Note the scale of the shift: 2021 submissions alone carry 9,997 mentions; with
 comments it is 47,825. **Comments are ~79% of 2021's mention volume.** §10's
 suspicion was not merely correct, it was understated.
 
-### Caveat on the 3-year gate
+### Remaining caveat
 
-2022 and 2023 rows in the full table are still submissions-only, because the
-comments backfill stops at 2022-01. Their 13.7% and 15.1% are therefore
-understated by roughly the same factor comments contributed elsewhere, and the
-3-year gate should not be read as passing. Extending the comments backfill
-through 2023 is the remaining work to settle it.
+2023 shows 20.0%, but the comments backfill reaches only 2023-02, so that year
+is still understated. It does not change the verdict: the gate is decided by the
+widest usable cohort, and both 2021 (28.5%) and 2022 (30.7%) are complete.
 
 ## §10's open question, answered: comments roughly double the funnel
 
