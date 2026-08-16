@@ -1,11 +1,14 @@
-# A1 — base-rate check: **PASS on usable cohorts**, with a large caveat
+# A1 — base-rate check: **MARGINAL** once comments are included
 
 Full corpus: **62,519 submissions, 2010-09-29 -> 2026-08-16, zero gaps.**
 Extraction at `--min-conf 0.75` → 139,491 mentions over 4,316 distinct entities.
 
-> **This supersedes an earlier version of this file written from a partial
-> backfill (through mid-2021). Two of its conclusions were wrong. Both
-> corrections are stated explicitly below rather than quietly edited out.**
+> **Headline correction.** Earlier versions of this file reported PASS on a
+> submissions-only corpus. The comments backfill is now complete (119,065
+> comments, 2019-01 → 2022-01, 49,005 mentions) and it changes the verdict:
+> including comments, the widest usable cohort funnel is **28.5%** of the
+> listed universe, which is MARGINAL rather than PASS. The submissions-only
+> figures are retained below for comparison, not as the answer.
 
 ## Result
 
@@ -109,6 +112,38 @@ Cashtags carry ~6% of mentions, as §5.2 predicted.
   Names that delisted to PINK are absent from that filter, so the denominator is
   the *exchange-listed* universe, which is the right comparison for a screener.
 
+
+## The verdict, on the complete corpus
+
+Comments cover 2019-01 → 2022-01, so 2019, 2020 and 2021 are complete. On those:
+
+    year   mentions    >=1x    >=2x   >=5x  >=3 auth  universe  % @>=2x
+    2019        455     151      68     21        17     5,321     1.3%
+    2020      3,984     792     386    134       161     5,337     7.2%
+    2021     47,825   2,628   1,746    952       984     6,120    28.5%
+
+    GATE (5-year, cohorts <= 2021): 1,746 names, 28.5%  -> MARGINAL
+    GATE (3-year, cohorts <= 2023): submissions-only for 2022-23, so the
+                                    comparison is not yet like-for-like
+
+**2021 is the binding cohort and it is 28.5% of the listed universe.** Reading
+that plainly: in the year that matters most for a 5-year horizon, the subreddit
+discussed more than a quarter of every US-listed common stock at least twice.
+A funnel that wide is a weak filter. It does not make lift impossible, but it
+does mean lift has to be strong to be worth anything as a screener — which is
+exactly what §3.2 says to check next.
+
+Note the scale of the shift: 2021 submissions alone carry 9,997 mentions; with
+comments it is 47,825. **Comments are ~79% of 2021's mention volume.** §10's
+suspicion was not merely correct, it was understated.
+
+### Caveat on the 3-year gate
+
+2022 and 2023 rows in the full table are still submissions-only, because the
+comments backfill stops at 2022-01. Their 13.7% and 15.1% are therefore
+understated by roughly the same factor comments contributed elsewhere, and the
+3-year gate should not be read as passing. Extending the comments backfill
+through 2023 is the remaining work to settle it.
 
 ## §10's open question, answered: comments roughly double the funnel
 

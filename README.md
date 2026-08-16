@@ -10,16 +10,16 @@ from the whole market.
 
 | Phase | State |
 |---|---|
-| 0 — acquisition, A1, score gate | **done.** 62,519 submissions, 2010-09 → 2026-08, no gaps |
+| 0 — acquisition, A1, score gate | **done.** 62,519 submissions (2010-09 → 2026-08) + 119,065 comments (2019 → 2022), no gaps |
 | 1 — extraction, entity resolution, panel | **done.** §5.2 gate **passes** at precision 0.955 / recall 0.933 (n=45, self-labelled) |
 | 2 — price data | **done.** Free tier passes the delisting gate; point-in-time universe built |
 | 3 — analyses A2–A8 | **code complete and unit-tested; running.** Blocked only on a 50-request/hour fetch quota |
 
-Headline so far: the funnel is **13.6% of the point-in-time listed universe for
-5-year cohorts, 15.0% for 3-year** — selective enough that lift is worth
-measuring. But it widens monotonically to **40.6% by 2025**, so the sub's value
-*as a filter* is decaying. And adding comments roughly **doubles** the funnel,
-which may unseat even that. See `phase0/A1_RESULT.md`.
+Headline: with comments included, the binding 2021 cohort funnel is **28.5% of
+the point-in-time listed universe** — **MARGINAL**, not the PASS that
+submissions alone suggested. In the year that matters most for a 5-year horizon,
+the sub discussed more than a quarter of every US-listed common stock at least
+twice. Comments are ~79% of 2021's mention volume. See `phase0/A1_RESULT.md`.
 
 **The lift question (A2–A8) is not yet answered.** All code is written and
 unit-tested; it is waiting on price data at 50 symbols/hour.
