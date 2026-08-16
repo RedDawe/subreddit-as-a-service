@@ -9,19 +9,24 @@ Extraction at `--min-conf 0.75` → 139,491 mentions over 4,316 distinct entitie
 
 ## Result
 
-    year    mentions     >=1x     >=2x     >=5x  >=3 authors  % univ @>=2x
-    2018         123       53       18        6            7         0.4%
-    2019         149       56       27        6            2         0.5%
-    2020       1,047      316      161       40           30         3.2%
-    2021       9,120    1,091      721      333          233        14.4%
-    2022      10,441    1,187      785      358          241        15.7%
-    2023       9,150    1,162      810      374          276        16.2%
-    2024      23,764    2,024    1,541      812          640        30.8%
-    2025      48,276    2,904    2,309    1,386        1,150        46.2%
-    2026      37,186    2,487    1,955    1,074          906        39.1%
+Denominator is the **point-in-time count of US-listed stocks** in each year
+(from Tiingo's free `supported_tickers`), not a flat 5,000. The listed universe
+is not constant — 5,585 names in 2015 against 8,238 in 2026 — and a fixed
+denominator overstates the funnel in every recent year.
 
-    GATE (5-year horizon, cohorts <= 2021): 721 names, 14.4%  -> PASS
-    GATE (3-year horizon, cohorts <= 2023): 810 names, 16.2%  -> PASS
+    year    mentions     >=1x     >=2x     >=5x  >=3 authors  universe   % @>=2x
+    2018         123       53       18        6            7     5,932      0.3%
+    2019         149       56       27        6            2     5,971      0.5%
+    2020       1,047      316      161       40           30     6,022      2.7%
+    2021       9,120    1,091      721      333          233     7,475      9.6%
+    2022      10,441    1,187      785      358          241     8,171      9.6%
+    2023       9,150    1,162      810      374          276     7,327     11.1%
+    2024      23,764    2,024    1,541      812          640     6,908     22.3%
+    2025      48,276    2,904    2,309    1,386        1,150     7,273     31.7%
+    2026      37,186    2,487    1,955    1,074          906     8,238     23.7%
+
+    GATE (5-year horizon, cohorts <= 2021): 721 names,  9.6% of 7,475  -> PASS
+    GATE (3-year horizon, cohorts <= 2023): 810 names, 11.1% of 7,327  -> PASS
 
 ## Correction 1 — the gate must be judged on cohorts that can have outcomes
 
@@ -35,11 +40,11 @@ would kill the project over data the study could not use either way.
 
 `a1_base_rate.py` now applies §4.3's horizons and reports the gate only over
 formation cohorts that can carry a forward return. On that basis it passes at
-14.4% (5-year) and 16.2% (3-year) — selective, though four times wider than the
-partial data suggested.
+**9.6% (5-year) and 11.1% (3-year)** — selective, though wider than the partial
+data suggested.
 
 **But the trend is itself a finding, and it is unfavourable.** The funnel widens
-monotonically: 0.4% (2018) → 14.4% (2021) → 30.8% (2024) → 46.2% (2025). Whatever
+monotonically: 0.3% (2018) → 9.6% (2021) → 22.3% (2024) → 31.7% (2025). Whatever
 this study concludes about 2019–2023 cohorts, the sub's usefulness *as a filter*
 is decaying, because it increasingly mentions everything. A reader acting on a
 2026 conclusion drawn from 2021 data would be using a screener that no longer
@@ -96,4 +101,6 @@ Cashtags carry ~6% of mentions, as §5.2 predicted.
   comments backfill.
 - **≥2× is per calendar year**, not a rolling 12-month window as §6 specifies —
   slightly conservative, since it splits runs straddling a year end.
-- The 5,000-name universe denominator is an order-of-magnitude figure.
+- Universe counts are US-exchange common stocks from Tiingo's ticker file.
+  Names that delisted to PINK are absent from that filter, so the denominator is
+  the *exchange-listed* universe, which is the right comparison for a screener.

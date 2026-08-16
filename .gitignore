@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 data/
 !artifacts/
+# secrets - never commit
+.env
+*.key
+secrets*

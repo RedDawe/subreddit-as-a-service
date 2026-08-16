@@ -24,13 +24,20 @@ import os
 # Known outcomes during the study period, chosen to span the failure modes that
 # matter: bankruptcy, bank failure, and acquisition. An adapter that handles
 # bankruptcies but not acquisitions still corrupts the winner tail.
+#   ticker: (description, expected last trade date or None if it kept trading OTC)
+#
+# The expected end date matters as much as the row count. A source that
+# forward-fills a delisted name with a stale price passes a "does it return
+# rows" check while producing fiction, so the gate also asks whether the series
+# STOPS when the company did.
 GATE_TICKERS = {
-    "SIVB": "bank failure, Mar 2023",
-    "BBBYQ": "bankruptcy, Apr 2023",
-    "ATVI": "acquired by Microsoft at a premium, Oct 2023",
-    "FRCB": "bank failure, May 2023",
-    "TWTR": "taken private, Oct 2022",
+    "SIVB": ("bank failure, Mar 2023 (kept trading OTC)", None),
+    "BBBYQ": ("bankruptcy, Apr 2023", "2023-09-29"),
+    "ATVI": ("acquired by Microsoft at a premium, Oct 2023", "2023-10-13"),
+    "FRCB": ("bank failure, May 2023 (kept trading OTC)", None),
+    "TWTR": ("taken private, Oct 2022", "2022-10-28"),
 }
+END_DATE_TOLERANCE_DAYS = 20
 GATE_CONTROL = "AAPL"
 GATE_WINDOW = ("2019-01-01", "2024-01-01")
 
@@ -99,7 +106,106 @@ class Sharadar(Adapter):
         return [(d, float(c)) for d, c in rows if c is not None]
 
 
-ADAPTERS = {"yfinance": YFinance, "sharadar": Sharadar}
+class Tiingo(Adapter):
+    """Tiingo EOD composite prices. Free tier, key in TIINGO_API_KEY.
+
+    Free-tier limits (vendor pricing page, 2026-08): 50 req/hour, 1000 req/day,
+    1 GB/month, and **500 unique symbols per month**. The symbol cap is the
+    binding one for this study and is tracked persistently across runs, so a
+    re-run cannot silently burn the month's quota.
+
+    `adjClose` is dividend- and split-adjusted, which is what design doc 4.4
+    means by total return. History goes back 30+ years, so unlike the free
+    Massive tier this actually reaches the study's formation cohorts.
+    """
+
+    name = "tiingo"
+    has_delisting_returns = True      # measured by gate(): all 5 dead names priced,
+                                      # each series terminating on its real last trade date
+
+    def __init__(self, key=None):
+        self.key = key or os.environ.get("TIINGO_API_KEY")
+        if not self.key:
+            raise PriceUnavailable("TIINGO_API_KEY is not set")
+        from ratelimit import tiingo_limiter, tiingo_symbol_budget
+        self.limiter = tiingo_limiter()
+        self.budget = tiingo_symbol_budget()
+
+    def history(self, ticker, start, end):
+        import json
+        import urllib.error
+        import urllib.request
+        if not self.budget.claim(ticker):
+            raise PriceUnavailable(
+                f"monthly unique-symbol cap reached ({self.budget.limit}); "
+                f"{ticker} not fetched. Resets on the 1st."
+            )
+        self.limiter.wait()
+        url = (f"https://api.tiingo.com/tiingo/daily/{ticker}/prices"
+               f"?startDate={start}&endDate={end}&token={self.key}")
+        req = urllib.request.Request(url, headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=90) as r:
+                rows = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                return []                     # unknown/uncovered symbol
+            if e.code == 429:
+                raise PriceUnavailable(f"tiingo rate limited: {e.read()[:200]!r}") from e
+            raise
+        return [(row["date"][:10], float(row["adjClose"])) for row in rows
+                if row.get("adjClose") is not None]
+
+
+class Massive(Adapter):
+    """Massive (formerly Polygon.io) aggregates. Free "Basic" plan.
+
+    Kept for completeness and rejected by `gate()` in practice: the free tier
+    serves only a rolling ~2-year window (a 2019 request returns NOT_AUTHORIZED
+    "your plan doesn't include this data timeframe", and so does 2024-01 as of
+    2026-08). That cannot reach this study's formation cohorts, let alone their
+    5-year forward windows.
+    """
+
+    name = "massive"
+    has_delisting_returns = False
+    FREE_TIER_YEARS = 2
+
+    def __init__(self, key=None):
+        self.key = key or os.environ.get("MASSIVE_API_KEY") or os.environ.get("POLYGON_API_KEY")
+        if not self.key:
+            raise PriceUnavailable("MASSIVE_API_KEY / POLYGON_API_KEY is not set")
+        from ratelimit import massive_limiter
+        self.limiter = massive_limiter()
+
+    def history(self, ticker, start, end):
+        import json
+        import urllib.error
+        import urllib.request
+        self.limiter.wait()
+        url = (f"https://api.massive.com/v2/aggs/ticker/{ticker}/range/1/day/"
+               f"{start}/{end}?adjusted=true&limit=50000&apiKey={self.key}")
+        try:
+            with urllib.request.urlopen(url, timeout=90) as r:
+                payload = json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                raise PriceUnavailable(
+                    f"massive rejected the request ({e.code}); the free tier serves "
+                    f"only ~{self.FREE_TIER_YEARS} years of history"
+                ) from e
+            if e.code == 429:
+                raise PriceUnavailable("massive rate limited (5 req/min on free)") from e
+            raise
+        if payload.get("status") == "NOT_AUTHORIZED":
+            raise PriceUnavailable(f"massive: {payload.get('message', '')[:160]}")
+        import datetime as _dt
+        return [(_dt.datetime.utcfromtimestamp(r["t"] / 1000).date().isoformat(),
+                 float(r["c"])) for r in payload.get("results", [])]
+
+
+ADAPTERS = {"yfinance": YFinance, "sharadar": Sharadar,
+            "tiingo": Tiingo, "massive": Massive}
 
 
 def gate(adapter, verbose=True):
@@ -114,35 +220,50 @@ def gate(adapter, verbose=True):
         return False, {"error": f"control {GATE_CONTROL} returned {len(control)} rows; "
                                 "the adapter is broken, not merely incomplete"}
 
-    missing = []
-    for t, why in GATE_TICKERS.items():
+    import datetime as _dt
+
+    missing, stale = [], []
+    detail = {}
+    for t, (why, expect_end) in GATE_TICKERS.items():
         try:
             rows = adapter.history(t, *GATE_WINDOW)
         except Exception as e:                       # noqa: BLE001
             rows = []
             report[f"{t}_error"] = str(e)[:120]
         report[t] = len(rows)
+        last = rows[-1][0] if rows else None
+        detail[t] = (len(rows), last, rows[-1][1] if rows else None)
         if len(rows) < 100:
             missing.append((t, why))
+        elif expect_end and last:
+            drift = abs((_dt.date.fromisoformat(last)
+                         - _dt.date.fromisoformat(expect_end)).days)
+            if drift > END_DATE_TOLERANCE_DAYS:
+                stale.append((t, why, last, expect_end))
 
     if verbose:
         print(f"adapter        : {adapter.name}")
         print(f"claims delisting returns: {adapter.has_delisting_returns}")
-        for t, n in report.items():
-            print(f"  {t:12} {n} rows")
+        print(f"  {'ticker':8}{'rows':>7}  {'last trade':12}{'last close':>11}")
+        for t, (n, last, px) in detail.items():
+            print(f"  {t:8}{n:>7}  {str(last):12}"
+                  f"{('%.2f' % px) if px is not None else '-':>11}")
 
-    if missing:
+    if missing or stale:
         if verbose:
-            print("\nFAIL - no data for names that stopped trading:")
             for t, why in missing:
-                print(f"  {t:6} ({why})")
-            print("\nUsing this source would silently drop these names from the")
-            print("universe. Both tails are affected: bankruptcies AND acquisitions.")
-            print("Supply a delisting-inclusive source (4.4) before computing returns.")
+                print(f"\nFAIL {t}: no data ({why})")
+            for t, why, last, exp in stale:
+                print(f"\nFAIL {t}: series runs to {last} but trading ended {exp} "
+                      f"({why}).\n  The source is padding a dead name with stale "
+                      "prices, which is worse than\n  omitting it - the backtest "
+                      "would show a flat hold instead of the real outcome.")
+            print("\nRefusing this source for returns (4.4).")
         return False, report
 
     if verbose:
-        print("\nPASS - delisted names are present and priced.")
+        print("\nPASS - delisted names are present, priced, and each series ends")
+        print("  when the company actually stopped trading (no forward-filling).")
     return True, report
 
 
