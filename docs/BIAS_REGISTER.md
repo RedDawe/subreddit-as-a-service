@@ -31,6 +31,8 @@ with what was actually found rather than what was anticipated.
 | 14 | **Score reliability is era-dependent** | Neutral here | **Handled by scoping.** Archived scores settled for 2015–2022 but are captured at creation from 2023 on. Usable cohorts sit in the trustworthy era. |
 | 15 | **Self-labelled validation** | Flatters | **Open.** The §5.2 gate passed at 0.949/0.925, but on n=30 labelled by the same system that wrote the extractor, non-blind. Not the independent measurement the doc requires. |
 | 16 | **Post-stratification ≠ matching** | Unknown | **Substitution, disclosed.** k=5 matched controls are unaffordable on a 500-symbol/month quota. Post-stratification adjusts for size only; matching would also have covered sector and country. |
+| 18 | **Name channel is survivor-only** | Flatters | **Quantified, unfixed.** 46% of the ticker vocabulary (8,955 of 19,353) has no company name, because the delisted top-up supplies tickers only. A dead company is findable as `GRIN` but not as "Grindrod". In the 2019-2021 cohorts, 243 of 1,507 entities (16.1%) are ticker-only. Dead names skew to the wipeout tail, so this thins losers more than winners. Fix rejected as disproportionate — see `phase1/QUALITY.md`. |
+| 19 | **Preferreds/warrants in the control pool** | Flatters | **Found and fixed.** Tiingo types preferred shares, warrants, units and exchange test symbols as "Stock". Preferreds are bond-like: they rarely 3x and rarely wipe out, so seeding controls with ~4,000 of them would have depressed the control winner rate and inflated lift. |
 | 17 | **Control formation dates assigned by draw** | Unknown | Controls inherit formation dates sampled from the treated distribution, so calendar exposure matches in aggregate but not name-by-name. |
 
 ## The cohort problem, restated
@@ -50,6 +52,9 @@ data access. No amount of extra quota fixes this; only waiting does.
 Counting only what is **open and unfixed** — #12 (aboutness), #15 (self-labelled
 validation), #7 (unadjusted multiplicity) all flatter; #16 and #17 are of
 unknown sign; #11 was a *hurting* bias and has been fixed.
+
+Add #18 (name channel survivor-only, quantified at 16.1% of cohort entities)
+to the flattering side.
 
 **The residual bias points toward flattering the subreddit.** Any positive lift
 should therefore be read as an upper bound, and a null result as robust.

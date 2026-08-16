@@ -2,21 +2,21 @@
 
 ## §5.2 gate: **PASS**, on a small self-labelled sample
 
-    labelled docs : 38      (design doc asks for 300)
-    TP=40  FP=2  FN=3
-    precision = 0.952       gate >= 0.90   PASS
-    recall    = 0.930       gate >= 0.80   PASS
+    labelled docs : 45      (design doc asks for 300)
+    TP=42  FP=2  FN=3
+    precision = 0.955       gate >= 0.90   PASS
+    recall    = 0.933       gate >= 0.80   PASS
 
     by channel      TP    FP   precision
       bare          27     0     1.000
       cashtag        1     0     1.000
-      name          12     2     0.857
+      name          14     2     0.875
 
 ### Read this before believing the numbers
 
 Three limitations, none of them small:
 
-1. **n=38, not 300.** The interval around a 0.95 precision estimate at n=30 is
+1. **n=45, not 300.** The interval around a 0.95 precision estimate at n=30 is
    wide. This is a smoke test that the extractor is not badly broken, not the
    measurement the design doc asks for.
 2. **The labeller is not independent.** The labels were produced by the same
@@ -33,11 +33,11 @@ Three limitations, none of them small:
    universe, not capitulation to the model. It is still not a blind protocol and
    it biases the estimate upward by an unknown amount.
 
-   The direction of that bias is worth being concrete about: expanding the
-   sample from 30 to 38 documents dropped precision from 0.949 to 0.826 before
-   the newly-exposed defects were fixed. Each expansion has so far found new
-   failure modes, which is the strongest available evidence that n=38 is still
-   too small.
+   The direction of that bias is worth being concrete about: expanding from 30
+   to 38 documents dropped precision from 0.949 to 0.826 before the newly-exposed
+   defects were fixed. The 38 -> 45 expansion was the first that found no new
+   *class* of defect - only known ones - which is weak evidence of stabilising.
+   It is weak because 45 is still an eighth of what §5.2 asks for.
 
 Treat the gate as provisionally passed. `artifacts/label_sample.tsv` holds 300
 year-stratified documents ready for an independent labeller; scoring is
@@ -72,9 +72,11 @@ while leaving no trace.
           has no notion of what a document is ABOUT. Real limitation.
     PG    incidental biography, see above
     KVYO  Klaviyo in a doc about a Fobi AI integration - arguably correct
-    GRIN  source misspells "Grindrod" as "Grinrod". §5.2 calls for fuzzy
-          matching on the name channel; not implemented.
-    GOOGL source typo "GOGGL". Same fix would catch it.
+    GRIN  source misspells "Grindrod" as "Grinrod". Fuzzy matching IS now
+          implemented, but Grindrod delisted in 2024 and therefore has no
+          company NAME in the vocabulary at all - see the asymmetry below.
+    GOOGL source typo "GOGGL" - a bare ticker, and fuzzy matching is
+          deliberately restricted to the name channel (see below).
     RYCEY Rolls-Royce, UK-listed. Structural — see the non-US limitation.
 
 ## False-positive classes found and fixed
@@ -141,6 +143,50 @@ corpus it ran at roughly 20 documents/second and would not have completed. It no
 tokenises and looks up 1- to 4-grams in a dict, which is O(tokens) and independent
 of alias-set size: **62,519 documents in 91 seconds**, with identical output on the
 regression cases above.
+
+## Fuzzy matching, and why it is name-channel only
+
+§5.2 asks for fuzzy matching. It is implemented as edit-distance-1 over
+single-word aliases of >=7 characters, and it must clear two guards:
+
+- the token must not itself be an ordinary English word. "Position" is one edit
+  from "positron" and produced a Positron Corp mention before this guard;
+- valuation language must appear nearby, so a typo elsewhere in a post cannot
+  conjure a company.
+
+It is **not** applied to bare tickers. At 4-5 characters an edit-distance-1
+neighbourhood is dense with other real tickers, so "GOGGL" -> GOOGL would come
+at the cost of many silent mis-resolutions. Recall on typo'd tickers is
+sacrificed deliberately.
+
+Net effect measured on the validation set: recall 0.911 -> 0.933.
+
+## The name channel is survivor-only, and this is quantified
+
+The delisted-ticker top-up (see the table above) supplies **tickers** but not
+**company names** — Tiingo's file has no name column, and SEC's current-state
+file omits dead companies by construction.
+
+    19,353 tickers in the vocabulary
+     8,955 of them (46%) have no company name at all
+
+So a delisted company is findable when written as `GRIN` but not when written as
+"Grindrod". Since the name channel carries most of the recall, delisted
+companies are systematically under-detected relative to survivors.
+
+Exposure in the cohorts the study actually uses (2019-2021):
+
+    11,933 mentions over 1,507 entities
+       243 entities (16.1%) resolvable only by ticker, with no name available
+
+Direction: **flatters the subreddit.** Dead names skew toward the wipeout tail,
+so under-detecting them thins the losers more than the winners.
+
+A fix exists but was rejected as disproportionate: SEC's `cik-lookup-data.txt`
+carries 1,055,361 historical filer names, including Grindrod. Adding them as
+aliases would swamp the name channel with fund, shell and individual-filer names
+for a modest recall gain — a precision catastrophe traded for a small recall
+win. Recorded here so the decision is visible rather than silent.
 
 ## Known limitation carried forward
 

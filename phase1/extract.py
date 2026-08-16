@@ -241,6 +241,58 @@ class Extractor:
         self.cik_to_ticker = {}
         for t, meta in self.by_ticker.items():
             self.cik_to_ticker.setdefault(meta["cik"], t)
+        self.fuzzy_index = self._build_fuzzy_index()
+
+    def _build_fuzzy_index(self):
+        """first-2-chars + length bucket -> aliases, for cheap near-miss lookup.
+
+        Design doc 5.2 asks for fuzzy matching on the company-name channel, and
+        the validation set shows why: "Grinrod" for Grindrod and "Nextstar" for
+        Nexstar are both single-edit typos that cost a real mention each.
+
+        Restricted to single-word aliases of >=7 characters and edit distance 1.
+        Short aliases are excluded because at 4-5 characters an edit-distance-1
+        neighbourhood is dense with other real tickers, which would trade a
+        recall gain for a precision loss.
+        """
+        idx = {}
+        for a, cik in self.aliases.items():
+            if " " in a or len(a) < 7 or not a.isalpha():
+                continue
+            idx.setdefault((a[:2], len(a)), []).append((a, cik))
+        return idx
+
+    @staticmethod
+    def _within_one_edit(a, b):
+        """True if a and b differ by at most one insertion/deletion/substitution."""
+        la, lb = len(a), len(b)
+        if abs(la - lb) > 1:
+            return False
+        if la == lb:
+            diff = sum(1 for x, y in zip(a, b) if x != y)
+            return diff <= 1
+        if la > lb:
+            a, b, la, lb = b, a, lb, la
+        i = j = 0
+        skipped = False
+        while i < la and j < lb:
+            if a[i] != b[j]:
+                if skipped:
+                    return False
+                skipped = True
+                j += 1
+                continue
+            i += 1
+            j += 1
+        return True
+
+    def _fuzzy_alias(self, token):
+        low = token.lower()
+        for L in (len(low) - 1, len(low), len(low) + 1):
+            for cand, cik in self.fuzzy_index.get((low[:2], L), ()):
+                if self._within_one_edit(low, cand):
+                    return cand, cik
+        return None, None
 
     # Stripping corporate suffixes leaves a long tail of aliases that are just
     # ordinary English - "growth" (GSTK), "honest" (HNST), "thesis" (THSGF).
@@ -279,6 +331,22 @@ class Extractor:
                     hit = (k, cik, toks[i][1], toks[i + k - 1][2])
                     break
             if not hit:
+                tok, ts, te = toks[i]
+                # Fuzzy fallback: capitalised, long enough to be safe, and only
+                # when flanked by valuation language so a typo elsewhere in the
+                # post does not conjure a company.
+                # "Position" is one edit from "positron" (POSC), so an ordinary
+                # English word can conjure a company. Fuzzy matching is only for
+                # tokens that are not themselves words.
+                from stoplist import _english_ranks
+                if (len(tok) >= 7 and tok[:1].isupper() and tok.isalpha()
+                        and tok.lower() not in self.aliases
+                        and _english_ranks().get(tok.lower()) is None):
+                    cand, cik = self._fuzzy_alias(tok)
+                    if cik and VALUATION_CUE.search(_context(text, ts, te)):
+                        yield dict(ticker=self.cik_to_ticker.get(cik, ""),
+                                   entity_id=cik, channel="name", confidence=0.78,
+                                   span=(ts, te), evidence=["company_name", "fuzzy"])
                 i += 1
                 continue
             k, cik, s, e = hit
