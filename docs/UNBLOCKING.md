@@ -35,6 +35,7 @@ Variables this repo reads:
 |---|---|---|
 | `NASDAQ_DATA_LINK_API_KEY` | price data / all of Phase 2–3 | `phase2/prices.py` |
 | `ANTHROPIC_API_KEY` | stance classification (5.3) | `phase2/stance.py` |
+| `REDDIT_CLIENT_ID` + `REDDIT_CLIENT_SECRET` | the §4.2 score-reliability gate | `phase0/score_check.py` |
 | `SEC_UA` | optional; SEC asks for a contact string | `phase1/universe.py` |
 
 **Do not** commit a key to the repo or paste it into chat. If one is ever
@@ -101,6 +102,24 @@ whole threads, and only mentions above the confidence floor are sent.
 
 Until then `phase2/stance.py` will not silently produce lexicon-quality labels —
 it requires `--baseline --force` and stamps `method` into every row.
+
+---
+
+## Blocker 3 (minor) — the §4.2 score-reliability gate
+
+Reddit now returns 403 with an HTML challenge to unauthenticated requests, so
+the doc's gate task ("sample 50 old posts, compare dump score to the live
+thread") needs Reddit OAuth credentials.
+
+This is the easiest of the three from a phone, and it is free: **reddit.com →
+prefs → apps → create app → type "script"**. That gives a client ID and secret;
+set them as `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET`.
+
+It is also the least urgent. The archived data already carries `retrieved_on`,
+and measured against `created_utc` on this corpus the capture lag is **~75 days
+median** with realistic values (e.g. score 15 on a 30-comment thread) — not the
+"frozen near zero" failure §4.2 feared. The live comparison would confirm that
+properly, but the conviction measure does not currently look broken.
 
 ---
 
