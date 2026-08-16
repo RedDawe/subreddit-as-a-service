@@ -72,11 +72,16 @@ def a4_timing(rows, prices_dir, horizon, out=print):
 def a5_novelty(rows, horizon, out=print):
     """Does the sub surface names a trivial screen would miss?
 
-    Free data gives no index membership and no market cap, so size is proxied
-    by dollar volume and "large" means the top quintile of the sampled
-    universe. The non-US leg of H3 is NOT answerable here at all - entity
-    resolution is SEC-based, so foreign-only listings cannot be extracted and a
-    measured 0% would be an artifact. It is declined rather than reported.
+    Three legs, with very different evidential status:
+
+      size      - dollar-volume quintiles of the sampled universe. Solid.
+      S&P 500   - from a CURRENT constituent snapshot, so historical membership
+                  is undercounted: a 2021 member since removed looks like a
+                  non-member. That inflates measured novelty, i.e. it flatters
+                  the sub on the hypothesis §1.3 expects to fail. Reported as a
+                  bound, not a point estimate.
+      non-US    - NOT reported. Entity resolution is SEC-based, so foreign-only
+                  listings cannot be extracted and 0% would be an artifact.
     """
     rows = [r for r in rows if r["horizon_years"] == horizon]
     treated = dedupe_by_name([r for r in rows if r["group"] == "treated"])
@@ -100,10 +105,33 @@ def a5_novelty(rows, horizon, out=print):
         f"volume: {big/len(treated):.1%}")
     out(f"  treated names above the median: {mid/len(treated):.1%}")
     out(f"  (controls are 20% / 50% by construction)")
+    res = {"share_top_quintile": big / len(treated),
+           "share_above_median": mid / len(treated)}
+
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "phase2"))
+        from sp500 import fetch as sp_fetch, in_index_at
+        members = sp_fetch()
+        conf_in = sum(1 for r in treated
+                      if in_index_at(members, r["ticker"], r["formation_date"]) is True)
+        unknown = sum(1 for r in treated
+                      if in_index_at(members, r["ticker"], r["formation_date"]) is None)
+        n = len(treated)
+        out(f"  confidently IN the S&P 500 at formation : {conf_in/n:.1%}")
+        out(f"  not confidently in (upper bound on novelty): {(n-conf_in)/n:.1%}")
+        out(f"    of which membership is simply unknown  : {unknown/n:.1%}")
+        out("  NB the constituent list is a CURRENT snapshot, so a 2021 member")
+        out("     since removed reads as a non-member. Treat the novelty share as")
+        out("     an UPPER BOUND - the bias runs toward flattering the sub here.")
+        res.update({"sp500_confirmed_in": conf_in / n,
+                    "novelty_upper_bound": (n - conf_in) / n,
+                    "sp500_unknown": unknown / n})
+    except Exception as e:                                   # noqa: BLE001
+        out(f"  S&P 500 leg unavailable: {type(e).__name__}")
+
     out("  H3's non-US leg is NOT reported: entity resolution is SEC-based, so")
     out("    foreign-only listings cannot be extracted and 0% would be an artifact.")
-    return {"share_top_quintile": big / len(treated),
-            "share_above_median": mid / len(treated)}
+    return res
 
 
 # --------------------------------------------------------------------- A6
