@@ -10,16 +10,19 @@ from the whole market.
 
 | Phase | State |
 |---|---|
-| 0 — acquisition, A1 base rate, score-reliability gate | **done.** 62,519 submissions, 2010-09 → 2026-08, no gaps. A1 **passes** on usable cohorts |
-| 1 — extraction, entity resolution, panel | **done.** 139,491 mentions → 27,437-row panel. Formal precision/recall gate needs human labels |
-| 2 — stance, returns | **price data unblocked (free)**; stance deferred by decision |
-| 3 — analyses A2–A8 | not started; now buildable, paced by a 500-symbol/month quota |
+| 0 — acquisition, A1, score gate | **done.** 62,519 submissions, 2010-09 → 2026-08, no gaps |
+| 1 — extraction, entity resolution, panel | **done.** §5.2 gate **passes** at precision 0.955 / recall 0.933 (n=45, self-labelled) |
+| 2 — price data | **done.** Free tier passes the delisting gate; point-in-time universe built |
+| 3 — analyses A2–A8 | **code complete and unit-tested; running.** Blocked only on a 50-request/hour fetch quota |
 
-Headline: the funnel is **9.6% of the point-in-time listed universe for 5-year
-cohorts, 11.1% for 3-year** — selective enough that lift is worth measuring. But
-it widens monotonically to **31.7% by 2025**, so the sub's value *as a filter* is
-decaying. See `phase0/A1_RESULT.md`, which also corrects two conclusions that a
-partial backfill got wrong.
+Headline so far: the funnel is **13.6% of the point-in-time listed universe for
+5-year cohorts, 15.0% for 3-year** — selective enough that lift is worth
+measuring. But it widens monotonically to **40.6% by 2025**, so the sub's value
+*as a filter* is decaying. And adding comments roughly **doubles** the funnel,
+which may unseat even that. See `phase0/A1_RESULT.md`.
+
+**The lift question (A2–A8) is not yet answered.** All code is written and
+unit-tested; it is waiting on price data at 50 symbols/hour.
 
 `phase0/FEASIBILITY.md` records what was probed in this environment and what
 that changed about the plan. `docs/UNBLOCKING.md` is the short version of what
@@ -66,8 +69,19 @@ vanish), damaging the winner tail as well as the wipeout tail.
       ratelimit.py            persistent vendor quota + rate limiting
       universe_pit.py         point-in-time listed universe (§3.2, §4.4)
       stance.py               §5.3 LLM stance pass + firewalled baseline
+    phase3/
+      select_cohort.py        treated set + control sample within quota
+      fetch_prices.py         resumable, quota-aware price fetch
+      outcomes.py             forward returns + winner/wipeout labels (§3.1)
+      analyses.py             A2 lift, A3 recall, A7 portfolio, A8 dose
+      analyses_extra.py       A4 timing, A5 novelty, A6 screens, A7 alpha
+      factors.py              FF5 + momentum (Ken French, free)
+      writeup.py              assembles the final report from results
+      test_outcomes.py        8 tests on the delisting/acquisition paths
+      test_analyses.py        6 tests on the lift estimator
     docs/
       DATA_SOURCES.md         every source, its limits, and what it can do
+      BIAS_REGISTER.md        §8 register - 8 doc biases + 11 found in build
       UNBLOCKING.md           what is still needed, and how to hand it over
     artifacts/
       mention_panel.csv       deliverable #1 - 27,437 (entity x month) rows
@@ -96,7 +110,15 @@ vanish), damaging the winner tail as well as the wipeout tail.
     python3 phase1/make_label_sample.py data/posts/posts.ndjson data/labels.tsv --n 300
     python3 phase1/score_labels.py data/labels.tsv data/mentions_posts.ndjson
 
+    # 7. the lift analysis (resumable; ~50 symbols/hour)
+    ./phase3/run_all.sh
+
 Use `--min-conf 0.75`. See `phase1/QUALITY.md` for why.
+
+## Tests
+
+    python3 phase3/test_outcomes.py    # 8/8 - delisting, acquisition, horizons
+    python3 phase3/test_analyses.py    # 6/6 - post-stratified lift estimator
 
 ## Design commitments carried through
 
