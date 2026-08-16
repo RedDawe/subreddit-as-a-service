@@ -1,0 +1,80 @@
+
+=== A4  TIMING, 3-year horizon ===
+  names with a >=50% move : 172
+  first mention AFTER the move began : 83.1%
+  lag days  median +241   p25 +78   p75 +315
+  positive = the sub discussed it only after the run-up started.
+
+=== A5  NOVELTY, 3-year horizon ===
+  treated names in the sampled universe's top quintile by dollar volume: 36.8%
+  treated names above the median: 76.2%
+  (controls are 20% / 50% by construction)
+  confidently IN the S&P 500 at formation : 47.2%
+  not confidently in (upper bound on novelty): 52.8%
+    of which membership is simply unknown  : 48.2%
+  NB the constituent list is a CURRENT snapshot, so a 2021 member
+     since removed reads as a non-member. Treat the novelty share as
+     an UPPER BOUND - the bias runs toward flattering the sub here.
+  H3's non-US leg is NOT reported: entity resolution is SEC-based, so
+    foreign-only listings cannot be extracted and 0% would be an artifact.
+
+=== A6  VS TRIVIAL SCREENS, 3-year horizon ===
+  outcome                sub   big-liquid screen    ratio
+  winner_3x             3.1%                2.7%     1.15
+  outperformer         38.3%               35.1%     1.09
+  wipeout               9.3%                0.0%      nan
+  baseline 2 (news coverage) and baseline 3 (mechanical value screen)
+    NOT RUN - both need fundamentals the free tier does not carry.
+
+=== A7  FACTOR-ADJUSTED ALPHA, 3-year horizon ===
+  months regressed : 63  (2019-03 .. 2024-05)
+  monthly alpha    : +0.4824%   (annualised +5.94%)
+  t-stat (approx)  : +1.72
+    beta Mkt-RF   +1.030
+    beta SMB      +0.524
+    beta HML      -0.096
+    beta RMW      -0.259
+    beta CMA      +0.453
+    beta Mom      -0.055
+  NB: t-stat uses iid residual SE - no Newey-West correction, so treat
+      significance as indicative rather than final.
+
+=== A4  TIMING, 5-year horizon ===
+  names with a >=50% move : 181
+  first mention AFTER the move began : 77.9%
+  lag days  median +225   p25 +51   p75 +314
+  positive = the sub discussed it only after the run-up started.
+
+=== A5  NOVELTY, 5-year horizon ===
+  treated names in the sampled universe's top quintile by dollar volume: 36.8%
+  treated names above the median: 76.2%
+  (controls are 20% / 50% by construction)
+  confidently IN the S&P 500 at formation : 47.2%
+  not confidently in (upper bound on novelty): 52.8%
+    of which membership is simply unknown  : 48.2%
+  NB the constituent list is a CURRENT snapshot, so a 2021 member
+     since removed reads as a non-member. Treat the novelty share as
+     an UPPER BOUND - the bias runs toward flattering the sub here.
+  H3's non-US leg is NOT reported: entity resolution is SEC-based, so
+    foreign-only listings cannot be extracted and 0% would be an artifact.
+
+=== A6  VS TRIVIAL SCREENS, 5-year horizon ===
+  outcome                sub   big-liquid screen    ratio
+  winner_3x            15.0%               10.8%     1.39
+  outperformer         35.2%               32.4%     1.09
+  wipeout               9.8%                2.7%     3.64
+  baseline 2 (news coverage) and baseline 3 (mechanical value screen)
+    NOT RUN - both need fundamentals the free tier does not carry.
+
+=== A7  FACTOR-ADJUSTED ALPHA, 5-year horizon ===
+  months regressed : 87  (2019-03 .. 2026-05)
+  monthly alpha    : +0.3132%   (annualised +3.82%)
+  t-stat (approx)  : +1.19
+    beta Mkt-RF   +0.955
+    beta SMB      +0.610
+    beta HML      -0.122
+    beta RMW      +0.001
+    beta CMA      +0.412
+    beta Mom      -0.095
+  NB: t-stat uses iid residual SE - no Newey-West correction, so treat
+      significance as indicative rather than final.

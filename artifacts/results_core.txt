@@ -1,0 +1,82 @@
+
+=== A2  LIFT, 3-year horizon ===
+  treated names : 193
+  control names : 188
+  size strata   : 5 (dollar-volume quintiles)
+
+  outcome         treated  ctrl raw  ctrl adj   naive  ADJUSTED            95% CI
+  winner_3x         3.1%      4.8%      1.3%    0.65      2.31      [0.61, 8.50]
+  outperformer     38.3%     32.4%     37.9%    1.18      1.01      [0.62, 2.01]
+  wipeout           9.3%     10.6%      3.3%    0.88      2.85      [1.46, 5.88]
+
+  median forward return  treated +24.6%   control +15.9%
+  survived full horizon  treated 97.4%   control 86.2%
+
+=== A3  RECALL, 3-year horizon ===
+  of names in each outcome class, what share did the sub discuss?
+  class                n   mentioned   recall
+  winner_3x           15           6    40.0%
+  wipeout             38          18    47.4%
+  outperformer       135          74    54.8%
+  all names          381         193    50.7%
+  NB: recall here is measured within the sampled universe, not the whole
+      market, so read the winner/loser GAP rather than the level.
+
+=== A8  DOSE-RESPONSE, 3-year horizon ===
+  does lift rise with mention intensity? a flat curve suggests
+  coincidental coverage rather than signal.
+     authors     n   winner_3x   wipeout  median ret
+         3-4    61        1.6%     19.7%      +16.2%
+         5-9    76        1.3%      6.6%      +20.8%
+       10-19    35        0.0%      2.9%      +31.1%
+         20+    21       19.0%      0.0%      +28.5%
+
+=== A7  PORTFOLIO, 3-year buy-and-hold ===
+  equal-weighted       +43.4%
+  author-weighted      +139.5%
+  benchmark (SPY)      +39.6%
+  excess (equal-wt)    +3.7%
+  NB: not factor-adjusted. 3.3 requires FF5+momentum alpha before this
+      number means anything - a value-tilted book vs SPY over this window
+      is a statement about the value factor, not about the subreddit.
+
+=== A2  LIFT, 5-year horizon ===
+  treated names : 193
+  control names : 188
+  size strata   : 5 (dollar-volume quintiles)
+
+  outcome         treated  ctrl raw  ctrl adj   naive  ADJUSTED            95% CI
+  winner_3x        15.0%     11.2%      9.3%    1.35      1.62      [0.83, 4.20]
+  outperformer     35.2%     26.1%     41.0%    1.35      0.86      [0.56, 1.83]
+  wipeout           9.8%     14.4%      4.7%    0.69      2.08      [1.09, 3.94]
+
+  median forward return  treated +61.7%   control +29.3%
+  survived full horizon  treated 94.3%   control 80.9%
+
+=== A3  RECALL, 5-year horizon ===
+  of names in each outcome class, what share did the sub discuss?
+  class                n   mentioned   recall
+  winner_3x           50          29    58.0%
+  wipeout             46          19    41.3%
+  outperformer       117          68    58.1%
+  all names          381         193    50.7%
+  NB: recall here is measured within the sampled universe, not the whole
+      market, so read the winner/loser GAP rather than the level.
+
+=== A8  DOSE-RESPONSE, 5-year horizon ===
+  does lift rise with mention intensity? a flat curve suggests
+  coincidental coverage rather than signal.
+     authors     n   winner_3x   wipeout  median ret
+         3-4    61        9.8%     18.0%      +41.4%
+         5-9    76       14.5%      9.2%      +51.3%
+       10-19    35       17.1%      2.9%      +71.6%
+         20+    21       28.6%      0.0%     +102.2%
+
+=== A7  PORTFOLIO, 5-year buy-and-hold ===
+  equal-weighted       +102.8%
+  author-weighted      +186.4%
+  benchmark (SPY)      +100.4%
+  excess (equal-wt)    +2.4%
+  NB: not factor-adjusted. 3.3 requires FF5+momentum alpha before this
+      number means anything - a value-tilted book vs SPY over this window
+      is a statement about the value factor, not about the subreddit.

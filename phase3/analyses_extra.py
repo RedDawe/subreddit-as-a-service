@@ -19,15 +19,22 @@ from factors import load as load_factors, ols                    # noqa: E402
 from outcomes import load_series                                 # noqa: E402
 
 
+LOOKBACK_DAYS = 365
+
 # --------------------------------------------------------------------- A4
 
 def a4_timing(rows, prices_dir, horizon, out=print):
     """Was the first mention before or after the major move began?
 
-    "Start of the move" is defined as the trough that precedes the maximum
-    price reached within the horizon. A positive lag means the sub started
-    talking about it AFTER the run-up was already under way - i.e. the sub was
-    following the price, not anticipating it.
+    "Start of the move" is the trough preceding the peak. A positive lag means
+    the sub started talking about the name AFTER the run-up was under way, i.e.
+    it was following price rather than anticipating it.
+
+    The window must open BEFORE the mention. An earlier version started it at
+    the mention date, which forced the trough to fall on or after the mention
+    and made "0% arrived late" a tautology rather than a measurement. Prices are
+    fetched from 2018-01 and formation starts 2019, so a 365-day look-back is
+    available for every name.
     """
     rows = dedupe_by_name([r for r in rows
                            if r["horizon_years"] == horizon and r["group"] == "treated"])
@@ -37,8 +44,9 @@ def a4_timing(rows, prices_dir, horizon, out=print):
         if not os.path.exists(path):
             continue
         s = load_series(path)
-        window = [(d, p) for d, p, _ in s
-                  if r["entry_date"] <= d <= r["exit_date"]]
+        lookback = (dt.date.fromisoformat(r["entry_date"])
+                    - dt.timedelta(days=LOOKBACK_DAYS)).isoformat()
+        window = [(d, p) for d, p, _ in s if lookback <= d <= r["exit_date"]]
         if len(window) < 60:
             continue
         peak_i = max(range(len(window)), key=lambda i: window[i][1])
