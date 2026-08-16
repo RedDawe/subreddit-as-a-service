@@ -135,12 +135,15 @@ class Tiingo(Adapter):
         import json
         import urllib.error
         import urllib.request
+        # Wait FIRST, then claim. Claiming before the wait spends a symbol from
+        # the monthly budget and then blocks for up to an hour; if the process
+        # is killed while waiting, that symbol is burned with nothing fetched.
+        self.limiter.wait()
         if not self.budget.claim(ticker):
             raise PriceUnavailable(
                 f"monthly unique-symbol cap reached ({self.budget.limit}); "
                 f"{ticker} not fetched. Resets on the 1st."
             )
-        self.limiter.wait()
         url = (f"https://api.tiingo.com/tiingo/daily/{ticker}/prices"
                f"?startDate={start}&endDate={end}&token={self.key}")
         req = urllib.request.Request(url, headers={"Content-Type": "application/json"})
@@ -167,12 +170,15 @@ class Tiingo(Adapter):
         import json
         import urllib.error
         import urllib.request
+        # Wait FIRST, then claim. Claiming before the wait spends a symbol from
+        # the monthly budget and then blocks for up to an hour; if the process
+        # is killed while waiting, that symbol is burned with nothing fetched.
+        self.limiter.wait()
         if not self.budget.claim(ticker):
             raise PriceUnavailable(
                 f"monthly unique-symbol cap reached ({self.budget.limit}); "
                 f"{ticker} not fetched. Resets on the 1st."
             )
-        self.limiter.wait()
         url = (f"https://api.tiingo.com/tiingo/daily/{ticker}/prices"
                f"?startDate={start}&endDate={end}&token={self.key}")
         req = urllib.request.Request(url, headers={"Content-Type": "application/json"})

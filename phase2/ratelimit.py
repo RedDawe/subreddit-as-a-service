@@ -75,6 +75,7 @@ class RateLimiter:
         self.windows = windows
         self.state_path = state_path
         self._lock = threading.Lock()
+        self._announced = False
         os.makedirs(os.path.dirname(state_path), exist_ok=True)
 
     def _current_calls(self):
@@ -95,7 +96,13 @@ class RateLimiter:
                     if len(recent) >= limit:
                         # wait until the oldest call in this window ages out
                         sleep_for = max(sleep_for, period - (now - min(recent)) + 0.5)
+                if sleep_for > 0 and not self._announced:
+                    import sys
+                    print(f"  [ratelimit:{self.name}] waiting {sleep_for/60:.1f} min "
+                          f"({len(calls)} calls in window)", file=sys.stderr, flush=True)
+                    self._announced = True
                 if sleep_for <= 0:
+                    self._announced = False
                     def mutate(node, _calls=calls, _now=now):
                         node["calls"] = _calls + [_now]
                         return node
