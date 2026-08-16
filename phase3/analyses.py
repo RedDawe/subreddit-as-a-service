@@ -51,10 +51,26 @@ def wilson(k, n, z=1.96):
 
 
 def strata_edges(values, n_strata=N_STRATA):
+    """Quantile cut points, deduplicated.
+
+    Edges must be derived from the POOLED treated+control sizes, not from the
+    controls alone. With control-only edges, a treated name larger than every
+    control still lands in the top control stratum, so the "unsupported weight"
+    diagnostic reports perfect support precisely when support is worst - it
+    cannot see off-support treated names at all.
+
+    Duplicate cut points are collapsed: a degenerate size distribution would
+    otherwise produce repeated edges and a silently meaningless stratification.
+    """
     vals = sorted(v for v in values if v and v > 0)
     if len(vals) < n_strata:
         return []
-    return [vals[int(len(vals) * i / n_strata)] for i in range(1, n_strata)]
+    raw = [vals[int(len(vals) * i / n_strata)] for i in range(1, n_strata)]
+    out = []
+    for e in raw:
+        if not out or e > out[-1]:
+            out.append(e)
+    return out
 
 
 def stratum_of(value, edges):
@@ -131,7 +147,7 @@ def a2_lift(rows, horizon, out=print):
             f"(treated={len(treated)}, controls={len(controls)})")
         return {}
 
-    edges = strata_edges([r["dollar_volume"] for r in controls])
+    edges = strata_edges([r["dollar_volume"] for r in treated + controls])
     out(f"\n=== A2  LIFT, {horizon}-year horizon ===")
     out(f"  treated names : {len(treated)}")
     out(f"  control names : {len(controls)}")
