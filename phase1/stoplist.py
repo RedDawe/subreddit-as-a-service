@@ -33,7 +33,16 @@ JARGON = {
     "ATH", "ATL", "YOLO", "FOMO", "HODL", "TA", "FA", "PT", "SL", "TP",
     "OTC", "NYSE", "AH", "PM", "EOD", "EOY",
     # macro
-    "GDP", "CPI", "PPI", "PMI", "QE", "QT", "USD", "EUR", "GBP", "JPY", "CNY",
+    "GDP", "CPI", "PPI", "PMI", "QE", "QT",
+    # Currency codes and symbols. These are written exactly like tickers next to
+    # exactly the numbers that trip the "numeric context" cue, so they are a
+    # pure false-positive source. "RM 829,919" (Malaysian ringgit) resolved to
+    # Regional Management Corp 16 times in a single document.
+    "USD", "EUR", "GBP", "JPY", "CNY", "RMB", "CHF", "SEK", "NOK", "DKK",
+    "AUD", "CAD", "NZD", "HKD", "SGD", "INR", "KRW", "TWD", "THB", "IDR",
+    "MYR", "RM", "PHP", "VND", "BRL", "MXN", "ARS", "CLP", "COP", "PEN",
+    "ZAR", "NGN", "EGP", "RUB", "TRY", "PLN", "CZK", "HUF", "RON", "ILS",
+    "AED", "SAR", "QAR", "KWD", "BHD", "PKR", "BDT", "LKR", "NPR", "KES",
     # internet shorthand
     "IMO", "IMHO", "TLDR", "TL", "DR", "AFAIK", "IIRC", "OP", "EDIT", "NSFW",
     "LOL", "IDK", "AKA", "FYI", "BTW", "ELI", "ETA", "PSA", "US", "USA", "UK",

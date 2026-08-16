@@ -47,6 +47,33 @@ def normalise_name(name):
     return re.sub(r"\s+", " ", n).strip()
 
 
+# Investors, authors and schools of thought whose surnames are also listed
+# companies. In a value-investing sub these appear constantly as people, so the
+# company reading is the rare one and is not worth the false positives.
+# "Graham" alone accounted for 13 spurious Graham Holdings mentions.
+PERSON_NAMES = {
+    "graham", "buffett", "munger", "dodd", "lynch", "fisher", "greenblatt",
+    "klarman", "pabrai", "marks", "templeton", "schloss", "burry", "ackman",
+    "icahn", "soros", "dalio", "bogle", "shiller", "damodaran", "greenwald",
+}
+
+# Frequency rank below which a single word is too common to be a safe alias.
+ALIAS_DISTINCTIVE_RANK = 50_000
+
+
+def _distinctive(word):
+    """True when `word` is rare enough in English to stand alone as a company alias."""
+    if word in PERSON_NAMES:
+        return False
+    try:
+        from wordfreq import zipf_frequency
+    except ImportError:                                   # pragma: no cover
+        return len(word) >= 6
+    # Zipf 3.0 is roughly "appears once per million words" - below that a word
+    # is rare enough that a capitalised occurrence is plausibly a company.
+    return zipf_frequency(word, "en") < 3.0
+
+
 def build():
     """Return (by_ticker, name_aliases).
 
@@ -69,13 +96,18 @@ def build():
         alias = normalise_name(r["name"])
         # One-word aliases shorter than 4 chars are noise ("box", "ari").
         if len(alias) >= 4 and " " not in alias:
-            name_aliases.setdefault(alias, cik)
+            if _distinctive(alias):
+                name_aliases.setdefault(alias, cik)
         elif " " in alias and len(alias) >= 6:
             name_aliases.setdefault(alias, cik)
             head = alias.split()[0]
-            # "berkshire hathaway" should also fire on "berkshire", but only
-            # when the head word is long enough not to collide with English.
-            if len(head) >= 6:
+            # "berkshire hathaway" should also fire on "berkshire". But the head
+            # word of a stripped name is very often a generic noun - Capital One
+            # -> "capital", United Rentals -> "united", Graham Holdings ->
+            # "graham" - and those match ordinary prose constantly. Length is not
+            # a sufficient filter (all of those are >= 6 chars), so the head must
+            # be distinctive, not merely long.
+            if len(head) >= 6 and _distinctive(head):
                 name_aliases.setdefault(head, cik)
 
     return by_ticker, name_aliases
