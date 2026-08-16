@@ -1,0 +1,109 @@
+"""Ticker universe + company-name aliases, built from SEC EDGAR.
+
+Serves design doc 4.4's requirement that mentions resolve to a stable entity ID
+(here: CIK) rather than to a ticker string.
+
+Important limitation, carried through to the writeup: EDGAR's company_tickers
+files are a *current-state* snapshot. They do not give point-in-time membership,
+so a ticker that was reassigned between the mention date and today will resolve
+to today's owner. Quantified in phase1/QUALITY.md; must be fixed with EDGAR
+former-names data before any return is computed off this map.
+"""
+
+import json
+import os
+import re
+import urllib.request
+
+UA = os.environ.get("SEC_UA", "subreddit-screener-study contact@example.com")
+SEC_EXCHANGE = "https://www.sec.gov/files/company_tickers_exchange.json"
+CACHE = os.path.join(os.path.dirname(__file__), "..", "data", "sec_universe.json")
+
+# Corporate suffixes stripped when deriving a searchable company alias.
+SUFFIXES = re.compile(
+    r"\b(corp|corporation|inc|incorporated|co|company|ltd|limited|plc|holdings?|"
+    r"group|the|sa|nv|ag|llc|lp|trust|reit|class [abc]|adr|new|com)\b\.?",
+    re.I,
+)
+
+
+def load_sec(force=False):
+    os.makedirs(os.path.dirname(CACHE), exist_ok=True)
+    if os.path.exists(CACHE) and not force:
+        return json.load(open(CACHE))
+    req = urllib.request.Request(SEC_EXCHANGE, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=90) as r:
+        raw = json.loads(r.read())
+    fields = raw["fields"]
+    rows = [dict(zip(fields, rec)) for rec in raw["data"]]
+    json.dump(rows, open(CACHE, "w"))
+    return rows
+
+
+def normalise_name(name):
+    n = name.lower()
+    n = re.sub(r"[^a-z0-9 &]", " ", n)
+    n = SUFFIXES.sub(" ", n)
+    return re.sub(r"\s+", " ", n).strip()
+
+
+def build():
+    """Return (by_ticker, name_aliases).
+
+    by_ticker    : TICKER -> {cik, name, exchange}
+    name_aliases : normalised company name -> cik  (only names distinctive
+                   enough to be worth matching on)
+    """
+    rows = load_sec()
+    by_ticker, name_aliases = {}, {}
+
+    for r in rows:
+        tic = (r.get("ticker") or "").upper().strip()
+        cik = r.get("cik")
+        if not tic or not cik:
+            continue
+        # First listing wins; EDGAR orders roughly by prominence, so this
+        # prefers the common share class over odd secondary lines.
+        by_ticker.setdefault(tic, {"cik": cik, "name": r["name"], "exchange": r.get("exchange")})
+
+        alias = normalise_name(r["name"])
+        # One-word aliases shorter than 4 chars are noise ("box", "ari").
+        if len(alias) >= 4 and " " not in alias:
+            name_aliases.setdefault(alias, cik)
+        elif " " in alias and len(alias) >= 6:
+            name_aliases.setdefault(alias, cik)
+            head = alias.split()[0]
+            # "berkshire hathaway" should also fire on "berkshire", but only
+            # when the head word is long enough not to collide with English.
+            if len(head) >= 6:
+                name_aliases.setdefault(head, cik)
+
+    return by_ticker, name_aliases
+
+
+# Hand-curated aliases for names the sub uses constantly in forms EDGAR
+# does not carry. Kept small and explicit rather than fuzzy-matched.
+MANUAL_ALIASES = {
+    "berkshire": 1067983, "brk": 1067983, "brk a": 1067983, "brk b": 1067983,
+    "google": 1652044, "alphabet": 1652044,
+    "facebook": 1326801, "meta": 1326801,
+    "apple": 320193, "microsoft": 789019, "amazon": 1018724,
+    "tesla": 1318605, "nvidia": 1045810, "netflix": 1065280,
+    "intel": 50863, "disney": 1744489, "walmart": 104169,
+    "coca cola": 21344, "coke": 21344, "pepsi": 77476,
+    "jpmorgan": 19617, "jp morgan": 19617, "goldman": 886982,
+    "exxon": 34088, "chevron": 93410, "pfizer": 78003,
+    "verizon": 732712, "at t": 732717, "boeing": 12927,
+    "target": 27419, "costco": 909832, "nike": 320187,
+    "starbucks": 829224, "mcdonalds": 63908, "salesforce": 1108524,
+    "paypal": 1633917, "adobe": 796343, "oracle": 1341439,
+    "qualcomm": 804328, "broadcom": 1730168, "cisco": 858877,
+}
+
+
+if __name__ == "__main__":
+    bt, na = build()
+    na.update(MANUAL_ALIASES)
+    print(f"tickers: {len(bt)}   name aliases: {len(na)}")
+    for t in ("AAPL", "BRK-B", "KEY", "ALL", "ON"):
+        print(f"  {t:6} -> {bt.get(t)}")
