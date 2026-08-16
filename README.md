@@ -10,10 +10,16 @@ from the whole market.
 
 | Phase | State |
 |---|---|
-| 0 — acquisition, A1 base rate, score-reliability gate | **built and running** |
-| 1 — extraction, entity resolution, panel | **built**; formal precision/recall gate needs human labels |
+| 0 — acquisition, A1 base rate, score-reliability gate | **done.** 62,519 submissions, 2010-09 → 2026-08, no gaps. A1 **passes** on usable cohorts |
+| 1 — extraction, entity resolution, panel | **done.** 139,491 mentions → 27,437-row panel. Formal precision/recall gate needs human labels |
 | 2 — stance, returns | **blocked on credentials**, code written and gated |
 | 3 — analyses A2–A8 | not started (blocked behind Phase 2) |
+
+Headline: the funnel is **14.4% of the universe for 5-year cohorts, 16.2% for
+3-year** — selective enough that lift is worth measuring. But it widens
+monotonically to **46% by 2025**, so the sub's value *as a filter* is decaying.
+See `phase0/A1_RESULT.md`, which also corrects two conclusions that a partial
+backfill got wrong.
 
 `phase0/FEASIBILITY.md` records what was probed in this environment and what
 that changed about the plan. `docs/UNBLOCKING.md` is the short version of what
@@ -55,6 +61,9 @@ therefore refuses to compute returns from a source that fails a delisting gate.
       stance.py               §5.3 LLM stance pass + firewalled baseline
     docs/
       UNBLOCKING.md           what is still needed, and how to hand it over
+    artifacts/
+      mention_panel.csv       deliverable #1 - 27,437 (entity x month) rows
+      label_sample.tsv        300 docs awaiting hand labels for the §5.2 gate
 
 ## Running it
 
