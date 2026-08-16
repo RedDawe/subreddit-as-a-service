@@ -233,7 +233,6 @@ def a7_portfolio(rows, horizon, out=print):
     """Equal- and conviction-weighted buy-and-hold vs the benchmark."""
     rows = dedupe_by_name([r for r in rows
                            if r["horizon_years"] == horizon and r["group"] == "treated"])
-    ctrl = dedupe_by_name([r for r in rows if r["group"] == "control"])
     out(f"\n=== A7  PORTFOLIO, {horizon}-year buy-and-hold ===")
     if not rows:
         return {}

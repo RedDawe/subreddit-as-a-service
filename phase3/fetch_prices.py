@@ -38,9 +38,22 @@ def main():
     # Benchmarks FIRST: every outcome is defined relative to them, so the
     # analysis table cannot be built at all until they exist. Fetching them last
     # means a part-finished run yields nothing.
-    symbols = (plan["benchmarks"]
-               + [r["ticker"] for r in plan["treated"]]
-               + plan["controls"])
+    # Benchmarks first, then treated and controls INTERLEAVED in proportion.
+    # Fetching all treated before any control means a part-finished run has no
+    # comparison group and can produce no lift estimate at all - and the treated
+    # set is ordered by mention count, so the partial sample would be the most
+    # discussed names, i.e. maximally unrepresentative.
+    tre = [r["ticker"] for r in plan["treated"]]
+    ctl = list(plan["controls"])
+    ratio = max(1, round(len(tre) / max(1, len(ctl))))
+    mixed, ti, ci = [], 0, 0
+    while ti < len(tre) or ci < len(ctl):
+        for _ in range(ratio):
+            if ti < len(tre):
+                mixed.append(tre[ti]); ti += 1
+        if ci < len(ctl):
+            mixed.append(ctl[ci]); ci += 1
+    symbols = plan["benchmarks"] + mixed
     # de-dupe, preserving order so the most-discussed treated names land first;
     # if the quota runs out mid-run, the important half is already on disk.
     seen, ordered = set(), []
