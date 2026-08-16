@@ -66,9 +66,80 @@ UPPER_TOKEN = re.compile(r"\b([A-Z]{1,5})(?:\.([A-Z]))?\b")
 
 CONTEXT_RADIUS = 220
 
+# Data providers, brokers and financial media are listed companies AND the
+# things this sub constantly cites as sources. "Morningstar says X is
+# undervalued" is a citation of a research vendor, not a thesis about owning
+# Morningstar - but the entity resolves correctly either way, so no amount of
+# ticker-matching catches it. Left unhandled, MORN alone contributed 698
+# mentions, which would place it in the top ten names and distort every
+# per-name statistic downstream.
+#
+# These names ARE genuinely discussed as investments too (people do own SCHW,
+# SPGI, V), so a blocklist would be wrong. Instead the mention is demoted only
+# when it sits in a citation construction.
+# Deliberately narrow. Generic prepositions and verbs ("on", "from", "has")
+# fire on ordinary theses - "DD on AutoNation (AN)" and "Morningstar has a wide
+# moat" are both real discussions and must NOT be demoted - so only
+# unambiguously citational constructions qualify.
+CITATION_PATTERN = re.compile(
+    r"\b(according to|as per|sourced? from|data from|screenshot from|"
+    r"pulled from|via|courtesy of)\s*$",
+    re.I,
+)
+CITATION_TRAILING = re.compile(
+    r"^\s*(says?|said|shows?|showed|reports? that|rates? it|estimates?|"
+    r"screener|terminal|fair value estimate|premium|paywall|"
+    r"\.com|\.co\.uk)\b",
+    re.I,
+)
+
 
 def _context(text, start, end):
     return text[max(0, start - CONTEXT_RADIUS): end + CONTEXT_RADIUS]
+
+
+# Companies whose role in THIS sub's discourse is overwhelmingly "tool I used"
+# rather than "stock I am considering": research vendors, index providers and
+# exchanges. Sampling 656 surviving Morningstar mentions found essentially all
+# of them to be tool references - "Morningstar Price/Fair Value: 0.64",
+# "Gold-rated by Morningstar", "fair value estimation from Morningstar" - in
+# constructions too varied for a citation-phrase list to catch.
+#
+# So for these names only, the burden of proof is inverted: a bare surface
+# mention is assumed to be a citation, and INVESTMENT framing must be shown.
+# Everything else in the universe keeps the normal rule. This is a heuristic
+# standing in for the role/stance judgement design doc 5.3 defers to an LLM
+# pass, and it is deliberately narrow.
+VENDOR_ROLE_TICKERS = {
+    "MORN",   # Morningstar - research/fair-value data
+    "FDS",    # FactSet
+    "MSCI",   # index provider
+    "SPGI",   # S&P Global - ratings/indices
+    "MCO",    # Moody's - ratings
+    "NDAQ",   # Nasdaq - the exchange
+    "ICE",    # ICE/NYSE - the exchange
+    "TRI",    # Thomson Reuters
+}
+INVESTMENT_FRAMING = re.compile(
+    r"\b(long|short|own|owning|bought|buying|sell|selling|sold|position|"
+    r"shares?|stock|valuation|undervalued|overvalued|moat|p/?e|market cap|"
+    r"revenue|earnings|margin|dividend|buyback|holding|portfolio)\b",
+    re.I,
+)
+VENDOR_FRAMING_RADIUS = 60
+
+
+def has_investment_framing(text, start, end):
+    """Investment language tight around the span, not merely somewhere in the doc."""
+    window = text[max(0, start - VENDOR_FRAMING_RADIUS): end + VENDOR_FRAMING_RADIUS]
+    return bool(INVESTMENT_FRAMING.search(window))
+
+
+def looks_like_citation(text, start, end):
+    """True when the mention reads as citing a source rather than discussing a holding."""
+    before = text[max(0, start - 40):start]
+    after = text[end:end + 40]
+    return bool(CITATION_PATTERN.search(before) or CITATION_TRAILING.match(after))
 
 
 class Extractor:
@@ -135,7 +206,16 @@ class Extractor:
             alias = surface.lower()
             evidence = ["company_name"]
             conf = 0.90
-            if self._alias_needs_proof(alias):
+            tkr = self.cik_to_ticker.get(cik, "")
+            if tkr in VENDOR_ROLE_TICKERS and not has_investment_framing(text, s, e):
+                evidence.append("vendor_citation")
+                conf = 0.50
+            elif looks_like_citation(text, s, e):
+                # Demoted below the 0.75 analysis floor rather than dropped, so
+                # the hand-labelling gate can still measure this decision.
+                evidence.append("citation_context")
+                conf = 0.55
+            elif self._alias_needs_proof(alias):
                 if not surface[:1].isupper():
                     continue                       # "growth" is not Growth Corp
                 if not VALUATION_CUE.search(_context(text, s, e)):
@@ -169,6 +249,19 @@ class Extractor:
                 evidence.append("valuation_language")
             if MONEY_CUE.search(ctx):
                 evidence.append("numeric_context")
+
+            if (sym in VENDOR_ROLE_TICKERS
+                    and not has_investment_framing(text, *m.span())):
+                yield dict(ticker=sym, entity_id=meta["cik"], channel="bare",
+                           confidence=0.50, span=m.span(),
+                           evidence=evidence + ["vendor_citation"])
+                continue
+
+            if looks_like_citation(text, *m.span()):
+                yield dict(ticker=sym, entity_id=meta["cik"], channel="bare",
+                           confidence=0.55, span=m.span(),
+                           evidence=evidence + ["citation_context"])
+                continue
 
             strong = {"name_in_doc", "cashtag_in_doc", "symbol_syntax"}
             has_strong = bool(strong & set(evidence))
