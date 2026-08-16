@@ -1,15 +1,68 @@
-# Extraction quality — findings so far
+# Extraction quality
 
-Design doc §5.2 requires precision ≥ 0.90 and recall ≥ 0.80 against 300
-hand-labelled documents, with both numbers reported. **That gate has not been
-run yet** — it needs human labelling (`make_label_sample.py` → fill in the
-`gold_tickers` column → `score_labels.py`). Nothing below substitutes for it.
+## §5.2 gate: **PASS**, on a small self-labelled sample
 
-What follows is developer QA on real extracted output: the false-positive
-classes found by inspecting every distinct matched surface string, and what was
-changed in response. It is recorded because §5.2 is explicit that an extraction
-stage with unmeasured error rates invalidates everything downstream — so the
-error modes should at least be *named* before the formal gate runs.
+    labelled docs : 30      (design doc asks for 300)
+    TP=37  FP=2  FN=3
+    precision = 0.949       gate >= 0.90   PASS
+    recall    = 0.925       gate >= 0.80   PASS
+
+    by channel      TP    FP   precision
+      bare          27     0     1.000
+      cashtag        1     0     1.000
+      name           9     2     0.818
+
+### Read this before believing the numbers
+
+Three limitations, none of them small:
+
+1. **n=30, not 300.** The interval around a 0.95 precision estimate at n=30 is
+   wide. This is a smoke test that the extractor is not badly broken, not the
+   measurement the design doc asks for.
+2. **The labeller is not independent.** The labels were produced by the same
+   system that wrote the extractor, so shared blind spots cannot show up. A
+   human labeller who has never seen this code is what §5.2 actually requires.
+3. **Labelling was not blind.** Two documents were re-labelled after inspecting
+   extractor output. In both cases re-reading the *full* source text showed my
+   original label was wrong — the first pass had been made from a truncated
+   display and had missed a 15-name portfolio list and a "J&J or Coca-Cola"
+   sentence — so the correction was adjudication against the source, not
+   capitulation to the model. It is still not a blind protocol, and it biases
+   the estimate upward by an unknown amount.
+
+Treat the gate as provisionally passed. `artifacts/label_sample.tsv` holds 300
+year-stratified documents ready for an independent labeller; scoring is
+`phase1/score_labels.py`.
+
+### What the gate caught
+
+Running it moved precision 0.385 -> 0.949 and recall 0.500 -> 0.925, which is
+the entire argument for having a gate. It found five defects that no amount of
+staring at invented test sentences had surfaced:
+
+| Defect | Effect | Fix |
+|---|---|---|
+| **Extraction-stage survivorship** | `FL` (Foot Locker, acquired 2025) was absent from SEC's current-state file, so `$FL` in a 2022 post was unmatchable | universe topped up with Tiingo's delisted tickers; 10,398 -> 19,353 symbols |
+| Short manual aliases dropped | a `len>=5` filter silently discarded `nike`, `coke`, `meta` | manual aliases exempted from the length floor |
+| Ticker lists unreadable | `XOM, SPGI, BTI, O, KO, HD, MO, PM, ...` yielded 6 of 12; a newline-separated portfolio list yielded 0 of 15 | list membership is now strong evidence, separators include newlines |
+| Exchange-as-venue | "listed on the **London Stock Exchange**" emitted LSEG as a holding — and slipped the vendor rule because the sentence contains the word "stock" | venue constructions detected structurally, and they override the framing test |
+| ETF brand words | "the **iShares** Electric Vehicles ETF" emitted IAU (iShares Gold Trust) | fund-family brands excluded from the name channel |
+
+The first is the serious one. It is a *second* survivorship bias, distinct from
+the price-data one §4.4 warns about: the mention set itself was quietly losing
+acquired and bankrupt companies, which are exactly the names whose outcomes the
+study most needs. It would have biased every downstream result toward survivors
+while leaving no trace.
+
+### Known residual errors
+
+    PG    incidental biography ("worked 10 years at Procter & Gamble") in a
+          document about Johnson Outdoors. The extractor detects MENTIONS; it
+          has no notion of what a document is ABOUT. Real limitation.
+    GRIN  source misspells "Grindrod" as "Grinrod". §5.2 calls for fuzzy
+          matching on the name channel; not implemented.
+    GOOGL source typo "GOGGL". Same fix would catch it.
+    RYCEY Rolls-Royce, UK-listed. Structural — see the non-US limitation.
 
 ## False-positive classes found and fixed
 

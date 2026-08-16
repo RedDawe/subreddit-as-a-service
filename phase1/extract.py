@@ -119,6 +119,9 @@ VENDOR_ROLE_TICKERS = {
     "NDAQ",   # Nasdaq - the exchange
     "ICE",    # ICE/NYSE - the exchange
     "TRI",    # Thomson Reuters
+    "LSEGY",  # London Stock Exchange Group - "listed on the London Stock
+              # Exchange" is a venue reference, not a thesis about LSEG
+    "CBOE",   # Cboe - likewise, usually the venue
 }
 INVESTMENT_FRAMING = re.compile(
     r"\b(long|short|own|owning|bought|buying|sell|selling|sold|position|"
@@ -128,11 +131,59 @@ INVESTMENT_FRAMING = re.compile(
 )
 VENDOR_FRAMING_RADIUS = 60
 
+# Fund-family brand words resolve to whichever ETF ticker happens to carry the
+# brand in its registered name ("iShares" -> IAU), so a sentence about an
+# iShares EV fund emits a gold-trust mention. These are never company mentions.
+ETF_BRAND_ALIASES = {
+    "ishares", "vanguard", "spdr", "invesco", "wisdomtree", "proshares",
+    "direxion", "globalx", "global x", "vaneck", "first trust", "schwab etf",
+}
+
+
+# "This stock is listed on the London Stock Exchange" contains investment
+# vocabulary ("stock") right next to an exchange name, so the vendor rule's
+# framing test passes and LSEG is emitted as a holding. Venue constructions are
+# therefore detected structurally and always win over the framing test.
+VENUE_PATTERN = re.compile(
+    r"(listed|trades?|trading|traded|quoted|delisted|ipo'?d|available)\s+"
+    r"(on|at|via)\s+(the\s+)?$", re.I,
+)
+
+
+def looks_like_venue(text, start):
+    return bool(VENUE_PATTERN.search(text[max(0, start - 40):start]))
+
 
 def has_investment_framing(text, start, end):
     """Investment language tight around the span, not merely somewhere in the doc."""
     window = text[max(0, start - VENDOR_FRAMING_RADIUS): end + VENDOR_FRAMING_RADIUS]
     return bool(INVESTMENT_FRAMING.search(window))
+
+
+# A run of comma/slash-separated uppercase tokens where several resolve to real
+# tickers is one of the most common shapes in this sub ("XOM, SPGI, BTI, O, KO,
+# HD, MO, PM, PFE, JNJ, MMM, AAPL"). Individually most of those carry no
+# evidence at all - O and PM are blocked as jargon, KO/HD/MO/MMM are ordinary
+# English - so a list like that yielded 6 of 12 names. Membership in a
+# corroborated list is itself strong evidence, and it rescues exactly the short,
+# word-like tickers the stoplist is otherwise forced to reject.
+# Separator allows a comma/slash, run-on spaces, OR a single newline: real
+# posts list holdings one per line as often as inline, and a space-only
+# separator missed a 15-name portfolio list entirely. At most one newline, so a
+# run cannot silently span two paragraphs.
+_SEP = r"(?:[ \t]*[,/][ \t\n]*|[ \t]*\n[ \t]*|[ \t]+)"
+TICKER_RUN = re.compile(r"\b[A-Z]{1,5}\b(?:" + _SEP + r"\b[A-Z]{1,5}\b){2,}")
+
+
+def ticker_list_spans(text, by_ticker, min_known=3):
+    """Character spans of comma-separated runs that are mostly real tickers."""
+    spans = []
+    for m in TICKER_RUN.finditer(text):
+        toks = re.findall(r"\b[A-Z]{1,5}\b", m.group(0))
+        known = sum(1 for t in toks if t in by_ticker)
+        if known >= min_known and known >= len(toks) * 0.6:
+            spans.append((m.start(), m.end()))
+    return spans
 
 
 def looks_like_citation(text, start, end):
@@ -152,8 +203,13 @@ class Extractor:
         # branch at every position: over a 57M-character corpus that ran at
         # roughly 20 documents/second and would not have finished. Token lookup
         # is O(tokens x max_alias_words) and independent of alias-set size.
+        # The >=5 length floor keeps generic short tokens out, but it must not
+        # apply to the hand-curated aliases: "nike", "coke" and "meta" are 4
+        # characters and were being silently discarded, so Nike was unmatchable.
         self.aliases = {n: c for n, c in self.name_aliases.items()
-                        if len(n) >= 5 and n.replace(" ", "").replace("&", "").isalnum()}
+                        if (n in MANUAL_ALIASES
+                            or (len(n) >= 5
+                                and n.replace(" ", "").replace("&", "").isalnum()))}
         self.max_alias_words = max((a.count(" ") + 1 for a in self.aliases), default=1)
         self.max_alias_words = min(self.max_alias_words, 4)
         self.cik_to_ticker = {}
@@ -204,10 +260,13 @@ class Extractor:
 
             surface = text[s:e]
             alias = surface.lower()
+            if alias in ETF_BRAND_ALIASES:
+                continue
             evidence = ["company_name"]
             conf = 0.90
             tkr = self.cik_to_ticker.get(cik, "")
-            if tkr in VENDOR_ROLE_TICKERS and not has_investment_framing(text, s, e):
+            if tkr in VENDOR_ROLE_TICKERS and (
+                    looks_like_venue(text, s) or not has_investment_framing(text, s, e)):
                 evidence.append("vendor_citation")
                 conf = 0.50
             elif looks_like_citation(text, s, e):
@@ -226,7 +285,7 @@ class Extractor:
                        channel="name", confidence=conf,
                        span=(s, e), evidence=evidence)
 
-    def _bare(self, text, doc_cashtags, doc_names):
+    def _bare(self, text, doc_cashtags, doc_names, runs=()):
         for m in UPPER_TOKEN.finditer(text):
             base = m.group(1)
             sym = base + (("-" + m.group(2)) if m.group(2) else "")
@@ -245,6 +304,8 @@ class Extractor:
                 evidence.append("cashtag_in_doc")
             if SYMBOL_SYNTAX.search(text[max(0, m.start() - 2): m.end() + 3]):
                 evidence.append("symbol_syntax")
+            if any(a <= m.start() and m.end() <= b for a, b in runs):
+                evidence.append("ticker_list")
             if VALUATION_CUE.search(ctx):
                 evidence.append("valuation_language")
             if MONEY_CUE.search(ctx):
@@ -263,13 +324,13 @@ class Extractor:
                            evidence=evidence + ["citation_context"])
                 continue
 
-            strong = {"name_in_doc", "cashtag_in_doc", "symbol_syntax"}
+            strong = {"name_in_doc", "cashtag_in_doc", "symbol_syntax", "ticker_list"}
             has_strong = bool(strong & set(evidence))
 
             if t == "JARGON":
                 if not has_strong:
                     continue
-                conf = 0.80
+                conf = 0.80 if "ticker_list" not in evidence else 0.88
             elif t == "COMMON":
                 # Needs a strong cue, or both weak cues together.
                 if not has_strong and len(evidence) < 2:
@@ -292,15 +353,18 @@ class Extractor:
             return []
         doc_cashtags = {m.group(1) for m in CASHTAG.finditer(text)}
         doc_names = {c["entity_id"] for c in self._names(text)}
+        runs = ticker_list_spans(text, self.by_ticker)
 
         hits = list(self._cashtags(text)) + list(self._names(text))
-        hits += list(self._bare(text, doc_cashtags, doc_names))
+        hits += list(self._bare(text, doc_cashtags, doc_names, runs))
 
         # Collapse overlapping hits on the same entity - "ON Semiconductor"
         # fires the name channel and the bare channel over nested spans, which
         # is one mention, not two. Keep the most confident, and merge evidence
         # so the surviving row records everything that corroborated it.
-        hits.sort(key=lambda h: (h["entity_id"], h["span"][0], -h["confidence"]))
+        # entity_id is an int CIK for SEC-known names and a "TIINGO:<ticker>"
+        # string for delisted ones, so sort on its string form.
+        hits.sort(key=lambda h: (str(h["entity_id"]), h["span"][0], -h["confidence"]))
         merged = []
         for h in hits:
             prev = merged[-1] if merged else None

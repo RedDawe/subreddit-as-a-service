@@ -74,6 +74,37 @@ def _distinctive(word):
     return zipf_frequency(word, "en") < 3.0
 
 
+def _tiingo_delisted_tickers():
+    """US-listed tickers from Tiingo's file, INCLUDING ones that have died.
+
+    SEC's company_tickers file is current-state, so a company that was acquired
+    or delisted simply is not in it. Foot Locker (FL) was acquired in 2025 and
+    is absent, which means the extractor could not recognise "$FL" in a 2022
+    post at all. That is survivorship bias inside the EXTRACTION stage - the
+    mention set silently loses exactly the acquired and bankrupt names whose
+    outcomes the study most needs - and it is a different bug from the
+    survivorship in price data that 4.4 warns about.
+
+    Tiingo's static ticker file carries start/end dates for ~7.4k terminated US
+    listings, so it is used to top up the ticker vocabulary. These entries have
+    no CIK, so they get a synthetic entity id and are flagged.
+    """
+    import csv
+    path = os.path.join(os.path.dirname(__file__), "..", "data", "tiingo_tickers.csv")
+    if not os.path.exists(path):
+        return {}
+    us = {"NYSE", "NASDAQ", "NYSE MKT", "AMEX", "NYSE ARCA", "BATS"}
+    out = {}
+    with open(path, newline="") as f:
+        for r in csv.DictReader(f):
+            if r.get("assetType") != "Stock" or r.get("exchange") not in us:
+                continue
+            t = (r.get("ticker") or "").upper().strip()
+            if t:
+                out.setdefault(t, {"start": r.get("startDate"), "end": r.get("endDate")})
+    return out
+
+
 def build():
     """Return (by_ticker, name_aliases).
 
@@ -110,6 +141,14 @@ def build():
             if len(head) >= 6 and _distinctive(head):
                 name_aliases.setdefault(head, cik)
 
+    # Top up with tickers that existed historically but are gone from EDGAR's
+    # current-state file. SEC entries always win, so live names keep their CIK.
+    for t, meta in _tiingo_delisted_tickers().items():
+        if t not in by_ticker:
+            by_ticker[t] = {"cik": f"TIINGO:{t}", "name": t,
+                            "exchange": None, "delisted": True,
+                            "listed_from": meta["start"], "listed_to": meta["end"]}
+
     return by_ticker, name_aliases
 
 
@@ -130,6 +169,10 @@ MANUAL_ALIASES = {
     "starbucks": 829224, "mcdonalds": 63908, "salesforce": 1108524,
     "paypal": 1633917, "adobe": 796343, "oracle": 1341439,
     "qualcomm": 804328, "broadcom": 1730168, "cisco": 858877,
+    # Abbreviations the sub uses constantly that EDGAR's legal names never carry.
+    "j&j": 200406, "jnj": 200406, "johnson & johnson": 200406,
+    "p&g": 80424, "procter & gamble": 80424,
+    "ge": 40545, "3m": 66740, "amd": 2488, "ibm": 51143,
 }
 
 
