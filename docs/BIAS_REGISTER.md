@@ -11,7 +11,7 @@ with what was actually found rather than what was anticipated.
 | # | Bias | Direction | Status |
 |---|---|---|---|
 | 1 | Survivorship in price data | Flatters | **Handled.** Tiingo passes a delisting gate that checks series *terminate on the real last trade date*, not merely that rows exist. |
-| 2 | Deleted / removed posts | Flatters | **Counted, not corrected.** `n_removed` is in the panel. Quantification pending. |
+| 2 | Deleted / removed posts | Flatters | **Quantified** — see below. 24% of formation-window posts have lost their body; they yield mentions at 49% the rate of intact posts. |
 | 3 | Point-in-time universe violation | Flatters | **Handled for controls.** Drawn from names listed at the start of the formation window, so dead names can be sampled. |
 | 4 | Size / sector skew of the sub | Unknown | **Partly handled.** Post-stratified on dollar-volume quintiles. Sector is NOT controlled — no free sector source. |
 | 5 | Benchmark choice | Hurts | SPY reported; VTV/IWD fetched; factor-adjusted alpha implemented. |
@@ -34,6 +34,39 @@ with what was actually found rather than what was anticipated.
 | 17 | **Control formation dates assigned by draw** | Unknown | Controls inherit formation dates sampled from the treated distribution, so calendar exposure matches in aggregate but not name-by-name. |
 | 18 | **Name channel is survivor-only** | Flatters | **Quantified, unfixed.** 46% of the ticker vocabulary (8,955 of 19,353) has no company name, because the delisted top-up supplies tickers only. A dead company is findable as `GRIN` but not as "Grindrod". In the 2019-2021 cohorts, 243 of 1,507 entities (16.1%) are ticker-only. Dead names skew to the wipeout tail, so this thins losers more than winners. Fix rejected as disproportionate — see `phase1/QUALITY.md`. |
 | 19 | **Preferreds/warrants in the control pool** | Flatters | **Found and fixed.** Tiingo types preferred shares, warrants, units and exchange test symbols as "Stock". Preferreds are bond-like: they rarely 3x and rarely wipe out, so seeding controls with ~4,000 of them would have depressed the control winner rate and inflated lift. |
+
+## Bias #2 quantified: deleted and removed content
+
+Across the whole corpus, 20.4% of submissions have a `[deleted]`/`[removed]`
+body. In the 2019–2021 formation window the picture is:
+
+    formation-window posts                8,641
+      body gone                           2,072   24.0%
+        author-deleted   ("deleted")      1,141   13.2%
+        moderator-removed                   829    9.6%
+        reddit/admin-removed                272    3.1%
+    author account deleted (corpus-wide)  3,551
+
+The three causes are not equivalent. Moderator and admin removals are mostly
+rule-breaking and spam, which has no obvious relationship to whether a stock
+call was good. **Author deletions are the survivorship-relevant class** — §4.2's
+concern is that people quietly delete their own bad calls — and those are 13.2%
+of the formation window.
+
+The damage to extraction is partial, because Reddit deletes the body but keeps
+the title:
+
+    body-gone posts yielding >=1 mention    365 / 2,072   17.6%
+    intact posts yielding >=1 mention     2,342 / 6,569   35.7%
+
+So body-gone posts still produce mentions at **49% the rate** of intact ones.
+Roughly half the mention-bearing content of deleted posts survives in the title.
+
+Direction and size: if deleted posts skew toward bad calls, this removes losers
+preferentially and **flatters the subreddit**. The upper bound on the effect is
+the ~18 percentage-point mention-rate gap applied to 2,072 posts — on the order
+of 375 posts' worth of mentions, against 8,641 posts in the window. Material but
+not dominant, and it cannot be corrected, only disclosed.
 
 ## The cohort problem, restated
 
