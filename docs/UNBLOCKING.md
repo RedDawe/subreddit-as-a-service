@@ -37,27 +37,45 @@ Everything upstream of stance runs without it. H1 on all-mentions is the
 robustness check the doc already specifies; only the bullish-only headline is
 blocked.
 
-## Blocker 3 — Reddit OAuth for the §4.2 score gate
+## Blocker 3 — Reddit OAuth: **abandon this, it is closed**
 
-Still open, still cheap, and now better motivated: on the full corpus the
-archived score IS unreliable from 2023 onward (median capture lag 0.0 days,
-~100% captured within 24h), though it remains trustworthy for the cohorts this
-study can actually use. A live comparison would confirm the split.
+Do not keep trying — the failure is not on your end. Reddit's **Responsible
+Builder Policy** disabled self-serve app creation. The `prefs/apps` page is left
+in a half-working state: the Create button silently refreshes, "accept terms"
+checkboxes are missing, and the policy link is shown instead of an app. Data API
+access is now behind manual approval, and existing apps keep working while new
+ones cannot be self-issued.
 
-**To create the app** (reddit.com → preferences → apps → create another app):
+So the §4.2 live score comparison ("sample 50 old posts, compare dump score to
+the live thread") is **not obtainable** on the free path. Treat it as closed
+rather than pending.
 
-    name          value
-    ----          -----
-    type          script
-    redirect uri  http://localhost:8080/reddit_callback
-    about url     (leave blank - optional for script apps)
+The loss is small and bounded, because `retrieved_on` already answers the
+question without Reddit:
 
-`redirect uri` is mandatory even for script-type apps, but it is never actually
-visited under the client-credentials flow this repo uses — it just has to be a
-syntactically valid URL you control. `http://localhost:8080/reddit_callback` is
-fine and needs nothing running on that port.
+    2015-2022   lag 26-267 days     scores settled   -> usable
+    2023-2026   lag ~0 days         captured live    -> unusable
 
-Then set `REDDIT_CLIENT_ID` and `REDDIT_CLIENT_SECRET`.
+The study's usable formation cohorts end 2021 (5-year) / 2023 (3-year), i.e.
+inside the trustworthy era. The live check would have confirmed that; it would
+not have changed it. The writeup should state this as an unverified assumption
+rather than a measured fact.
+
+## Structural limitation: H3 / A5 is not measurable as built
+
+Design doc §1.3's novelty hypothesis asks what share of mentions are **non-US
+listed**. That cannot currently be answered, and the reason is structural rather
+than a missing key.
+
+Entity resolution runs off SEC EDGAR, whose exchange file contains only Nasdaq
+(4,347), NYSE (3,312), OTC (2,514) and CBOE (28) — all US listings. A company
+listed only in Frankfurt, Tokyo or Warsaw has no CIK and therefore cannot be
+extracted at all. ADRs are covered; genuine foreign listings are invisible.
+
+So a measured "0% non-US" would be an artifact of the universe, not a finding
+about the subreddit. To answer H3 honestly the alias dictionary needs a non-US
+identifier source (ISIN- or FIGI-based). Until then A5 should report only the
+S&P-500 and top-1000 splits and explicitly decline the non-US question.
 
 ## Handing over credentials
 

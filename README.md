@@ -112,6 +112,16 @@ Use `--min-conf 0.75`. See `phase1/QUALITY.md` for why.
   method into every row, so floor-quality labels cannot be mistaken for the LLM
   pass the doc requires (§5.3).
 
+## Known structural limitations
+
+- **H3 / A5 (non-US novelty) is unmeasurable as built.** Entity resolution is
+  SEC-based, so only US listings and ADRs exist in the universe. A "0% non-US"
+  result would be an artifact. Needs an ISIN/FIGI source to answer honestly.
+- **The §4.2 live score check is closed**, not pending: Reddit disabled
+  self-serve API app creation (Responsible Builder Policy, 2026).
+- **Research-vendor mentions** (Morningstar, FactSet, MSCI…) are demoted by a
+  heuristic standing in for the §5.3 role/stance judgement.
+
 ## What this cannot tell you yet
 
 A1 measures whether the funnel is *narrow*. It says nothing about whether the
