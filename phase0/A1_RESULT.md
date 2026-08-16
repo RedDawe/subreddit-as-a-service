@@ -31,8 +31,9 @@ denominator overstates the funnel in every recent year.
 ## Correction 1 — the gate must be judged on cohorts that can have outcomes
 
 The partial-data version reported a 4.2% funnel and a clean pass. On the full
-corpus the widest year is **2025 at 46.2%** — the sub now mentions nearly half
-the investable universe annually. Taken at face value that is close to a fail.
+corpus the widest year is **2025 at 31.7%** — the sub now mentions roughly a
+third of the listed universe annually. Taken at face value that is a MARGINAL,
+not a pass.
 
 It would be the wrong test. A cohort formed in 2025 has no 5-year forward return
 measurable in Aug 2026, so it can never enter the study. Judging the gate on it

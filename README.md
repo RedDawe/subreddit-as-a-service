@@ -12,14 +12,14 @@ from the whole market.
 |---|---|
 | 0 — acquisition, A1 base rate, score-reliability gate | **done.** 62,519 submissions, 2010-09 → 2026-08, no gaps. A1 **passes** on usable cohorts |
 | 1 — extraction, entity resolution, panel | **done.** 139,491 mentions → 27,437-row panel. Formal precision/recall gate needs human labels |
-| 2 — stance, returns | **blocked on credentials**, code written and gated |
-| 3 — analyses A2–A8 | not started (blocked behind Phase 2) |
+| 2 — stance, returns | **price data unblocked (free)**; stance deferred by decision |
+| 3 — analyses A2–A8 | not started; now buildable, paced by a 500-symbol/month quota |
 
-Headline: the funnel is **14.4% of the universe for 5-year cohorts, 16.2% for
-3-year** — selective enough that lift is worth measuring. But it widens
-monotonically to **46% by 2025**, so the sub's value *as a filter* is decaying.
-See `phase0/A1_RESULT.md`, which also corrects two conclusions that a partial
-backfill got wrong.
+Headline: the funnel is **9.6% of the point-in-time listed universe for 5-year
+cohorts, 11.1% for 3-year** — selective enough that lift is worth measuring. But
+it widens monotonically to **31.7% by 2025**, so the sub's value *as a filter* is
+decaying. See `phase0/A1_RESULT.md`, which also corrects two conclusions that a
+partial backfill got wrong.
 
 `phase0/FEASIBILITY.md` records what was probed in this environment and what
 that changed about the plan. `docs/UNBLOCKING.md` is the short version of what
@@ -34,12 +34,17 @@ September 2010, is live to the present, and therefore collapses the doc's
 separate "gap fill 2025→present" step and its zstd parsing stage into one
 source.
 
-**Price data.** §4.4 predicted free sources would drop delisted names. They do —
-but *unpredictably*, which is worse. First Republic is priced correctly all the
-way down to $0.04 while SVB, Bed Bath, Activision and Twitter return nothing.
-Unpredictable missingness cannot be modelled, and losing Activision means the
-*winner* tail is damaged too, not just the wipeout tail. `phase2/prices.py`
-therefore refuses to compute returns from a source that fails a delisting gate.
+**Price data.** §4.4 assumed delisting-inclusive pricing had to be bought. It
+does not: **Tiingo's free tier passes the delisting gate**, and each series ends
+when the company actually stopped trading rather than being forward-filled
+(Activision terminates on the Microsoft close, Twitter on the take-private). Its
+static ticker file additionally provides a free **point-in-time universe**, which
+is what §3.2's matched controls need. The real constraint is a quota — 500 unique
+symbols per month — not money. `docs/DATA_SOURCES.md` has the measurements.
+
+yfinance is still rejected: it drops delisted names *unpredictably* (First
+Republic priced correctly to $0.04, while SVB, Bed Bath, Activision and Twitter
+vanish), damaging the winner tail as well as the wipeout tail.
 
 ## Layout
 
@@ -58,8 +63,11 @@ therefore refuses to compute returns from a source that fails a delisting gate.
       QUALITY.md              false-positive classes found and fixed
     phase2/
       prices.py               gated price adapters (§4.4 + §7 Phase 2 gate)
+      ratelimit.py            persistent vendor quota + rate limiting
+      universe_pit.py         point-in-time listed universe (§3.2, §4.4)
       stance.py               §5.3 LLM stance pass + firewalled baseline
     docs/
+      DATA_SOURCES.md         every source, its limits, and what it can do
       UNBLOCKING.md           what is still needed, and how to hand it over
     artifacts/
       mention_panel.csv       deliverable #1 - 27,437 (entity x month) rows
