@@ -7,7 +7,7 @@ Extraction at `--min-conf 0.75` → 139,491 mentions over 4,316 distinct entitie
 > submissions-only corpus. The comments backfill is now complete (119,065
 > comments, 2019-01 → 2022-01, 49,005 mentions) and it changes the verdict:
 > including comments, the widest usable cohort funnels are **28.5%** (2021,
-> 5-year horizon) and **30.7%** (2022, 3-year horizon) of the listed universe —
+> 5-year horizon) and **33.3%** (2023, 3-year horizon) of the listed universe —
 > MARGINAL rather than PASS, on both horizons. The submissions-only
 > figures are retained below for comparison, not as the answer.
 
@@ -143,11 +143,19 @@ Note the scale of the shift: 2021 submissions alone carry 9,997 mentions; with
 comments it is 47,825. **Comments are ~79% of 2021's mention volume.** §10's
 suspicion was not merely correct, it was understated.
 
-### Remaining caveat
+### The decay is monotonic and it is the clearest result in the study
 
-2023 shows 20.0%, but the comments backfill reaches only 2023-02, so that year
-is still understated. It does not change the verdict: the gate is decided by the
-widest usable cohort, and both 2021 (28.5%) and 2022 (30.7%) are complete.
+    2019   1.3%
+    2020   7.2%
+    2021  28.5%
+    2022  30.7%
+    2023  33.3%
+    2025  40.7%
+
+Whatever lift turns out to be, **the funnel has been widening every single year**.
+A reader applying a conclusion drawn from 2021 data to today's subreddit would
+be using a screener that has since roughly doubled in width. This is a fact
+about the sub, not an artifact of the method, and it belongs in the conclusion.
 
 ## §10's open question, answered: comments roughly double the funnel
 

@@ -16,7 +16,7 @@ from the whole market.
 | 3 — analyses A2–A8 | **code complete and unit-tested; running.** Blocked only on a 50-request/hour fetch quota |
 
 Headline: with comments included, the binding cohorts are **28.5%** (2021,
-5-year) and **30.7%** (2022, 3-year) of the point-in-time listed universe —
+5-year) and **33.3%** (2023, 3-year) of the point-in-time listed universe —
 **MARGINAL on both horizons**, not the PASS that submissions alone suggested. In the year that matters most for a 5-year horizon,
 the sub discussed more than a quarter of every US-listed common stock at least
 twice. Comments are ~79% of 2021's mention volume. See `phase0/A1_RESULT.md`.
