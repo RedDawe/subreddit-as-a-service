@@ -102,12 +102,35 @@ Cashtags carry ~6% of mentions, as §5.2 predicted.
 - **The §5.2 gate now passes** at precision 0.952 / recall 0.930, but on 38
   documents labelled non-blind by the same system that wrote the extractor. See
   `phase1/QUALITY.md` — that is not the independent measurement §5.2 requires.
-- **Submissions only.** §10 is right that comments carry most of the volume and
-  most of the bear cases. Adding them will widen every count and may move the
-  gate toward MARGINAL even on usable cohorts. This must be re-run after the
-  comments backfill.
+- **Submissions only — and this is now measured, not speculated.** See below.
 - **≥2× is per calendar year**, not a rolling 12-month window as §6 specifies —
   slightly conservative, since it splits runs straddling a year end.
 - Universe counts are US-exchange common stocks from Tiingo's ticker file.
   Names that delisted to PINK are absent from that filter, so the denominator is
   the *exchange-listed* universe, which is the right comparison for a screener.
+
+
+## §10's open question, answered: comments roughly double the funnel
+
+A partial comments backfill (2019-01 → 2021-03, 27,580 comments → 9,382
+mentions) makes the effect measurable for the two cohort years it fully covers:
+
+    cohort  source              mentions   >=1x   >=2x   >=5x  universe  % @>=2x
+    2019    submissions only         169     67     32      7     5,321      0.6%
+    2019    subs + comments          455    151     68     21     5,321      1.3%
+    2020    submissions only       1,192    381    180     43     5,337      3.4%
+    2020    subs + comments        3,984    792    386    134     5,337      7.2%
+
+Comments roughly **double** both the distinct-entity count and the ≥2× funnel
+width. §10's suspicion that they carry most of the volume is correct.
+
+**This threatens the A1 verdict.** The submissions-only 2021 funnel is 13.6%. If
+the ~2x widening holds, the combined 2021 figure lands near 27%, which crosses
+the MARGINAL boundary. The 3-year cohort (2023, 15.0% submissions-only) would be
+similarly affected.
+
+So the honest statement of the A1 result is narrower than "PASS": **the funnel is
+selective enough to be worth measuring on submissions, and may not be on the full
+corpus.** The comments backfill must be completed and A1 re-run before the gate
+is treated as settled. That work is mechanical — the fetcher is resumable — and
+is the single highest-value outstanding item after the price data.
