@@ -9,11 +9,15 @@ Columns follow 5.4. Two deviations, both deliberate:
   * `total_score` / `max_score` are emitted but carry a companion column
     `score_lag_days_median`, because whether the score is trustworthy depends
     entirely on how long after posting it was captured (4.2). Measured on this
-    corpus the lag is ~75 days, which is well past settling - but the number
-    travels with the data so a reader can re-judge rather than take it on faith.
+    corpus the lag is bimodal - settled for 2015-2022, captured at creation from
+    2023 on - so the number travels per cell and a reader can re-judge rather
+    than take a pooled figure on faith.
   * `n_removed` is added. 4.2 flags deleted/removed content as a survivorship
     bias that flatters the sub; it cannot be quantified later if it is not
     counted here.
+  * `n_in_title` / `n_primary` are added. The extractor finds MENTIONS, not what
+    a document is ABOUT, so these carry the aboutness evidence forward instead of
+    forcing that judgement at extraction time.
 
 Stance columns (n_bullish/n_bearish/n_neutral) are present but left null unless
 a stance file is supplied - see phase2/. Nulls are honest; zeros would look like
@@ -65,6 +69,7 @@ def build(mentions_path, docs_paths, out_path, min_conf, stance_path=None):
         "lags": [], "tickers": collections.Counter(),
         "bullish": 0, "bearish": 0, "neutral": 0, "question": 0,
         "channels": collections.Counter(), "docs": set(),
+        "in_title": 0, "primary": 0,
     })
     first_seen = {}
 
@@ -94,6 +99,12 @@ def build(mentions_path, docs_paths, out_path, min_conf, stance_path=None):
                 c["lags"].append((meta["retrieved_on"] - meta["created_utc"]) / 86400)
             c["tickers"][m["ticker"]] += 1
             c["channels"][m["channel"]] += 1
+            # Aboutness proxies (see extract.py): lets a downstream analysis
+            # restrict to mentions the document is plausibly *about*.
+            if m.get("in_title"):
+                c["in_title"] += 1
+            if m.get("is_primary"):
+                c["primary"] += 1
             c["docs"].add(m["doc_id"])
 
             st = stance.get((m["doc_id"], m["entity_id"]))
@@ -109,12 +120,15 @@ def build(mentions_path, docs_paths, out_path, min_conf, stance_path=None):
             "n_neutral", "n_question", "total_score", "max_score",
             "score_lag_days_median", "total_thread_comments", "n_removed",
             "first_mention_ever", "months_since_first_mention",
-            "n_cashtag", "n_bare", "n_name"]
+            "n_cashtag", "n_bare", "n_name", "n_in_title", "n_primary"]
 
     with open(out_path, "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(cols)
-        for (entity, ym), c in sorted(cells.items(), key=lambda kv: (kv[0][1], kv[0][0])):
+        # entity_id is an int CIK for SEC-known names and a "TIINGO:<ticker>"
+        # string for delisted ones, so sort on its string form.
+        for (entity, ym), c in sorted(cells.items(),
+                                      key=lambda kv: (kv[0][1], str(kv[0][0]))):
             fm = dt.datetime.utcfromtimestamp(first_seen[entity])
             y, mo = int(ym[:4]), int(ym[5:])
             months_since = (y - fm.year) * 12 + (mo - fm.month)
@@ -138,6 +152,7 @@ def build(mentions_path, docs_paths, out_path, min_conf, stance_path=None):
                 int(months_since == 0),
                 months_since,
                 c["channels"]["cashtag"], c["channels"]["bare"], c["channels"]["name"],
+            c["in_title"], c["primary"],
             ])
     print(f"panel rows: {len(cells)}  ->  {out_path}")
     if not stance:
