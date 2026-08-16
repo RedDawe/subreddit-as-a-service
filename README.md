@@ -21,11 +21,13 @@ Headline: with comments included, the binding cohorts are **28.5%** (2021,
 the sub discussed more than a quarter of every US-listed common stock at least
 twice. Comments are ~79% of 2021's mention volume. See `phase0/A1_RESULT.md`.
 
-**The lift question is answered: NULL on winners, significant on losers.**
-Size-adjusted lift on 3-baggers is 1.62 [0.83, 4.20] at 5 years — indistinguishable
-from a size-matched draw. The only significant effect is that the sub's names are
-**2.1x more likely to lose 70%+**. And 77.9% of names were first discussed *after*
-the run-up began, median +225 days. Full results: `artifacts/FINDINGS.md`.
+**Being mentioned means nothing; being mentioned *most* might.** Size-adjusted,
+mentioned stocks are no better than matched controls at producing 3-baggers
+(lift 1.76, range 0.90–4.36) and **2.1x more likely to lose 70%+**. But rank the
+same stocks by how many people discussed them and every wipeout sits in the
+bottom of the list — the **top 25 had zero**, against 12.6% for the rest. The sub
+also shows up late: 77.9% of names were first discussed *after* the run-up began,
+median +225 days. Full results: `artifacts/FINDINGS.md`.
 
 `phase0/FEASIBILITY.md` records what was probed in this environment and what
 that changed about the plan. `docs/UNBLOCKING.md` is the short version of what
@@ -78,6 +80,7 @@ vanish), damaging the winner tail as well as the wipeout tail.
       outcomes.py             forward returns + winner/wipeout labels (§3.1)
       analyses.py             A2 lift, A3 recall, A7 portfolio, A8 dose
       analyses_extra.py       A4 timing, A5 novelty, A6 screens, A7 alpha
+      rank_analysis.py        A9 - does rank beat membership? (added, not in doc)
       factors.py              FF5 + momentum (Ken French, free)
       writeup.py              assembles the final report from results
       test_outcomes.py        8 tests on the delisting/acquisition paths
@@ -91,6 +94,7 @@ vanish), damaging the winner tail as well as the wipeout tail.
       mention_panel.csv       deliverable #1 - 31,115 (entity x month) rows
       results_core.json       A2/A3/A7/A8 machine-readable
       results_extra.json      A4/A5/A6/A7-alpha machine-readable
+      results_rank.json       A9 rank-vs-membership
       label_sample.tsv        300 docs, 45 labelled, for the §5.2 gate
 
 ## Running it

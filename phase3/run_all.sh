@@ -29,5 +29,7 @@ python3 phase3/outcomes.py data/cohort_plan.json data/prices data/analysis_table
 python3 phase3/analyses.py       data/analysis_table.ndjson --out artifacts/results_core.json
 python3 phase3/analyses_extra.py data/analysis_table.ndjson data/prices \
     --out artifacts/results_extra.json
+python3 phase3/rank_analysis.py data/analysis_table.ndjson \
+    data/mentions_posts.ndjson data/posts/posts.ndjson --out artifacts/results_rank.json
 python3 phase3/writeup.py artifacts/results_core.json artifacts/results_extra.json \
     artifacts/WRITEUP.md --horizon 5

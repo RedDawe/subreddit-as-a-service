@@ -1,188 +1,140 @@
-# Is r/ValueInvesting a useful idea screener?
+# Is r/ValueInvesting a useful stock screener?
 
-**Answer: no, not on this evidence.** The funnel is too wide to filter much, the
-lift on winners is statistically indistinguishable from zero, the only
-significant effect is on *losers*, and the sub arrives after the move has
-started.
-
-Every number below is reproducible from this repo (`phase3/run_all.sh`).
+**Short answer: not as a list of "what got mentioned". Possibly yes as a list of
+"what got mentioned *most*".**
 
 ---
 
-## 1. The headline
+## Words used here
 
-| test | 5-year | 3-year |
-|---|---|---|
-| **A1** funnel width (binding cohort) | 28.5% of the listed universe | 33.3% |
-| **A2** adjusted lift, `winner_3x` | 1.62 **[0.83, 4.20]** | 2.31 **[0.61, 8.50]** |
-| **A2** adjusted lift, `outperformer` | 0.86 **[0.56, 1.83]** | 1.01 **[0.62, 2.01]** |
-| **A2** adjusted lift, `wipeout` | **2.08 [1.09, 3.94]** | **2.85 [1.46, 5.88]** |
+- **Cohort** — the year a stock was first discussed. We follow it forward 3 and
+  5 years from there.
+- **3-bagger** — the stock tripled (+200% or more), dividends included.
+- **Wipeout** — the stock lost 70% or more, or went to roughly zero.
+- **Control** — a stock the sub did *not* discuss, picked at random from those
+  actually listed at the same time, and started on the same date.
+- **Lift** — how much more often something happens in the sub's names than in
+  the controls. Lift 2.0 = twice as often. **Lift 1.0 = no difference at all.**
+- **Size-adjusted** — the sub talks about big companies, and big companies
+  behave differently from small ones. So before comparing, we reweight the
+  controls to have the same size mix as the sub's names. Otherwise you just
+  measure "big companies did well", which we already knew.
+- **Confidence interval** — the range the true answer plausibly sits in.
+  **If the range includes 1.0, we cannot tell the sub apart from chance.**
 
-Sample: 193 treated names (≥4 distinct submission authors, formation 2019–2021)
-against 188 controls drawn from the point-in-time listed universe, size-adjusted
-by post-stratification on dollar-volume quintiles.
-
-**Winners: null.** Both horizons' confidence intervals span 1.0. §3.2 states the
-conclusion for this case outright — *"if matched lift is indistinguishable from
-zero … the honest conclusion is 'just use a screener'."*
-
-**Outperformance: null, and flat.** 0.86 and 1.01. Conditioning on the sub does
-not raise the odds of beating SPY.
-
-**Wipeouts: significant, and the wrong way.** Size-adjusted, the sub's names are
-**2.1× (5y) and 2.9× (3y) more likely to lose 70%+**, and both intervals exclude
-1.0. This is the only tail the data can distinguish.
-
-That combination is precisely §3.1's warning: *"a funnel that enriches for both
-tails is a volatility filter, not a skill filter."* Here it does not even enrich
-both tails — only the losing one, significantly.
-
-### Why the naive number misleads
-
-    winner_3x    naive lift 1.35   →   adjusted 1.62
-    wipeout      naive lift 0.69   →   adjusted 2.08
-
-Raw, the sub's names look *safer* than controls (9.8% wipeouts vs 14.4%). That
-is entirely a size effect: controls include small illiquid names that fail often.
-Reweighted to the sub's own size distribution, the expected control wipeout rate
-falls to 4.7% — and the sub's 9.8% is then twice that. **The sign flips.** This
-is exactly why §3.2 insists on matched rather than naive comparison.
+Sample: 193 discussed stocks (4+ different people wrote about each, 2019–2021)
+vs 196 controls.
 
 ---
 
-## 2. The sub follows price (A4)
+## 1. Being mentioned means nothing
 
-Of 181 treated names that had a ≥50% move:
+| outcome | sub | controls (size-adj) | lift | range |
+|---|---|---|---|---|
+| 3-bagger | 15.0% | 8.5% | 1.76 | 0.90 – 4.36 |
+| beat the S&P | 35.2% | 42.4% | 0.83 | 0.57 – 1.57 |
+| **wipeout** | **9.8%** | **4.8%** | **2.06** | **1.12 – 3.98** |
 
-    first mentioned AFTER the move began : 77.9%
-    lag from trough to first mention     : median +225 days (p25 +51, p75 +314)
+Both winner ranges include 1.0, so we can't distinguish the sub from chance on
+finding winners. Beating the market: flat.
 
-**More than three-quarters of the time, the run-up was already ~7 months old
-before the sub discussed the name.** Whatever the sub is doing, it is not
-early.
+The one thing we *can* measure is that mentioned stocks were **twice as likely
+to lose 70%+**. That range excludes 1.0.
 
----
-
-## 3. Conviction does carry signal (A8)
-
-The one genuinely encouraging result. Splitting the treated set by distinct
-author count, 3-year horizon:
-
-    authors     n   winner_3x   wipeout   median return
-      3-4      61       1.6%     19.7%        +16.2%
-      5-9      76       1.3%      6.6%        +20.8%
-     10-19     35       0.0%      2.9%        +31.1%
-
-**The wipeout rate falls sevenfold as author count rises, and median return
-roughly doubles.** So the aggregate wipeout result is driven by the
-low-conviction tail: names three or four people mentioned once. Names a dozen
-people discussed did not blow up.
-
-That is a real, monotone dose-response — the pattern §6's A8 says to look for.
-It does not rescue the winner-lift null, but it says the sub's *high-conviction*
-subset is not the problem. The screener, if there is one, is "names ≥10 different
-people discussed", not "names that appeared".
+**A caution about the raw numbers.** Unadjusted, the sub's stocks look *safer*
+than controls (9.8% wipeouts vs 14.3%). That's pure size — the random controls
+include small companies that fail often. Compare like with like and the sign
+flips. This is why the size adjustment isn't optional.
 
 ---
 
-## 4. Recall says the sub is measuring its own breadth (A3)
+## 2. But ranking them does something
 
-3-year horizon, within the sampled universe:
+Instead of "was it mentioned", ask "was it one of the most-discussed". Sorting
+the same 193 stocks by how many different people wrote about them, 5-year:
 
-    class            n    mentioned   recall
-    winner_3x       15        6        40.0%
-    wipeout         38       18        47.4%
-    outperformer   135       74        54.8%
-    all names      381      193        50.7%
+| bucket | n | 3-baggers | **wipeouts** | median return |
+|---|---|---|---|---|
+| top 10 | 10 | 40.0% | **0%** | +145% |
+| top 25 | 25 | 24.0% | **0%** | +87% |
+| top 50 | 50 | 22.0% | 2% | +88% |
+| everything else | 143 | 12.6% | **12.6%** | +44% |
 
-**Winner recall (40.0%) is *below* loser recall (47.4%) and below the overall
-mention rate (50.7%).** §1.2 sets exactly this test: *"if 90% of winners appeared
-and 88% of losers appeared too, the sub has measured nothing but its own
-breadth."* The sub does not preferentially surface winners. It slightly
-preferentially surfaces losers.
+Controls: 10.7% 3-baggers, 14.3% wipeouts, +29% median.
 
----
+Sorting by upvotes instead of author count gives the same shape (top 10: 40%
+3-baggers, 0% wipeouts, +158% median). Same at the 3-year horizon.
 
-## 5. Novelty and the trivial screen (A5, A6)
+**Every wipeout is in the bottom of the ranking.** The top 25 by any of the four
+ranking measures had none at all.
 
-    confidently in the S&P 500 at formation   47.2%
-    upper bound on "outside the S&P 500"      52.8%   (48.2pp of it unknown)
-    in the top dollar-volume quintile         36.8%
-    above the universe median                 76.2%
+That reframes finding #1: the "twice as likely to blow up" result is *entirely*
+the thinly-discussed tail. Stocks a dozen people wrote about did not blow up.
 
-Novelty is an **upper bound**: the constituent list is a current snapshot, so a
-2021 member since removed reads as a non-member. The true novelty share is lower
-than 52.8%.
-
-Head-to-head against "just buy the big liquid names" (A6, 5-year):
-
-    outcome         sub    big-liquid screen   ratio
-    winner_3x     15.0%          10.8%          1.39
-    outperformer  35.2%          32.4%          1.09
-    wipeout        9.8%           2.7%          3.64
-
-The sub beats the trivial screen slightly on winners and **loses badly on
-wipeouts**. Baselines 2 and 3 from §3.2 (news coverage, mechanical value screen)
-were not run — both need fundamentals the free tier does not carry.
+**How much to believe this.** The wipeout pattern is consistent across all four
+ranking measures and both horizons, which is reassuring. The *winner* side is
+not established — size-adjusted lift for the top 10 is 3.20 but the range runs
+0.64 to 11.56, so it includes 1.0. With 10 stocks in a bucket you cannot expect
+better. Treat "ranking avoids disasters" as the finding and "ranking finds
+winners" as an untested hypothesis worth more data.
 
 ---
 
-## 6. Portfolio and factor alpha (A7)
+## 3. The sub shows up late
 
-Equal-weighted, 5-year hold, regressed on Fama-French 5 + momentum over 87
-months:
+Of 181 stocks that had a 50%+ run, **77.9% were first discussed after the run
+had already started** — median 225 days after the low.
 
-    monthly alpha    +0.313%   (annualised +3.82%)
-    t-stat            +1.19    (not significant)
-    beta Mkt-RF       +0.955
-    beta SMB          +0.610
-    beta HML          -0.122
-    beta CMA          +0.412
-
-Alpha is positive but insignificant. The interesting number is **SMB +0.61**: the
-portfolio carries a large small-cap tilt, and **HML is slightly negative** — for a
-*value* subreddit, the book carries no value loading at all. Much of the raw
-return is a size bet.
-
-t-stat uses iid residual standard errors with no Newey-West correction, so treat
-it as indicative.
+Whatever the sub is doing, it isn't early.
 
 ---
 
-## 7. What would change this answer
+## 4. It mentions losers slightly more than winners
 
-In rough order of how much they matter:
+Within the sample, 3-year:
 
-1. **Sample size.** 193 treated names gives intervals like [0.83, 4.20]. The
-   quota (500 unique symbols/month) is the binding constraint, not money — three
-   more months of fetching would roughly quadruple the sample.
-2. **Stance classification (§5.3).** This is *all-mentions*, which §5.3 calls the
-   robustness check, not the headline. Bullish-only could differ, and given A8's
-   dose-response it plausibly would.
-3. **Independent extraction labels.** The gate passes at 0.955/0.933 but on 45
-   documents labelled non-blind by the same system that wrote the extractor.
-4. **1:k matching instead of post-stratification**, which would also control
-   sector and country rather than size alone.
+    3-baggers the sub mentioned    40.0%
+    wipeouts the sub mentioned     47.4%
+    all stocks the sub mentioned   50.7%
 
-## 8. Residual bias
+If the sub had a nose for winners, the first number would be the highest. It's
+the lowest.
 
-`docs/BIAS_REGISTER.md` tracks 8 biases from the design doc and 11 found during
-implementation. Of those still open and unfixed — aboutness, self-labelled
-validation, name-channel survivorship, unadjusted multiplicity — **all point
-toward flattering the subreddit.**
+---
 
-So: the null on winners is robust (a favourable bias failed to produce a
-positive), and the significant wipeout result is, if anything, understated.
+## 5. Other results, briefly
 
-## 9. The finding that outlives the study
+- **Portfolio**: +3.8%/year above what the risk factors explain, but not
+  statistically significant (t = 1.19). The portfolio carries a large
+  *small-company* tilt and **no value tilt at all** — odd for a value forum.
+  Much of the raw return is a size bet.
+- **Novelty**: at most 53% of picks were outside the S&P 500, and that's an
+  upper bound (our membership list is current-only, so it overstates novelty).
+- **vs "just buy big liquid stocks"**: the sub wins slightly on 3-baggers
+  (15.0% vs 10.8%) and loses badly on wipeouts (9.8% vs 2.7%).
+- **The funnel keeps widening**: the sub discussed 1.3% of US-listed stocks in
+  2019, 28.5% in 2021, **40.7% in 2025**. As a filter it is getting weaker every
+  year — which is exactly why the ranking approach matters more than the
+  membership one.
 
-The funnel has widened every single year:
+---
 
-    2019   1.3%      2022  30.7%
-    2020   7.2%      2023  33.3%
-    2021  28.5%      2025  40.7%
+## 6. What I'd do next
 
-By 2025 the subreddit discussed **more than 40% of the US-listed universe** at
-least twice. Even if a 2021-era edge existed, a reader applying it today would be
-using a screener that has roughly doubled in width since. This is a fact about
-the sub, independent of anything above.
+1. **Test the ranking properly.** This is the promising result and it's the
+   least-tested. It also works on recent years: you can rank 2025 names today
+   even though you can't score their 5-year return yet. Concretely — take the
+   top 25 by author count each month from 2019 on, and track that as a rolling
+   list.
+2. **Separate bullish from bearish mentions.** Everything above counts any
+   mention. "Is X a value trap?" currently counts the same as "I'm buying X".
+   Given #2, this could matter a lot.
+3. **More data.** 193 stocks gives ranges like 0.90–4.36. The limit is the free
+   data quota (500 symbols/month), not money.
+
+## Honesty note
+
+Every unfixed bias in this study points the same way — toward making the sub
+look *better* than it is (details in `docs/BIAS_REGISTER.md`). So the "mentions
+mean nothing" result is solid, and the wipeout result is if anything understated.
+The ranking result is the one that could still go either way with more data.
