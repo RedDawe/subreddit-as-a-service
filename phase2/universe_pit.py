@@ -27,6 +27,7 @@ Two traps this module encodes, both found by inspection:
 
 import csv
 import datetime as dt
+import re
 import io
 import os
 import urllib.request
@@ -39,6 +40,36 @@ US_EXCHANGES = {"NYSE", "NASDAQ", "NYSE MKT", "AMEX", "NYSE ARCA", "BATS"}
 # Bankruptcy/liquidation suffixes: a name that moved to PINK under one of these
 # has effectively stopped being an exchange-listed company.
 DISTRESS_SUFFIXES = ("Q", "QB")
+
+# Tiingo labels preferred shares, warrants, units and rights as assetType
+# "Stock", so an unfiltered draw pulls JPM-P-E-CL, GRX-P-B, USB-P-H and friends
+# into the control group. Preferreds behave like bonds: they almost never 3x
+# and almost never wipe out, so including them DEPRESSES the control group's
+# winner rate and inflates measured lift - i.e. it flatters the subreddit on
+# the headline number. Common equity only.
+NON_COMMON = re.compile(
+    r"(-P-|-PR|\.PR|-WT|-WS|\.WS|-U$|-UN$|-RT|-R$|-CL$|-W$)", re.I,
+)
+
+
+# Warrants and units also use a suffix-letter convention with no separator
+# (PRTHW for PRTH, CREXW for CREX), which the dash patterns above cannot see.
+# Testing that the stem exists in the same universe makes this precise rather
+# than penalising every real ticker that happens to end in W or U.
+SUFFIX_LETTERS = ("W", "U", "R")
+
+# Exchange test symbols. NASDAQ and NYSE publish these permanently and Tiingo
+# carries them as ordinary stocks, so a random draw can pick one as a control.
+TEST_TICKERS = re.compile(r"^(N?TEST|ZTEST|ZVZZT|ZXZZT|ZWZZT|ZJZZT|IBM[0-9])", re.I)
+
+
+def is_common_equity(ticker, known=None):
+    if NON_COMMON.search(ticker or "") or TEST_TICKERS.match(ticker or ""):
+        return False
+    if known and len(ticker) == 5 and ticker[-1] in SUFFIX_LETTERS:
+        if ticker[:4] in known:
+            return False
+    return True
 
 
 def download(force=False):
@@ -57,7 +88,7 @@ def download(force=False):
 class PitUniverse:
     def __init__(self, path=None, us_only=True, stocks_only=True):
         path = path or download()
-        self.rows = []
+        raw = []
         with open(path, newline="") as f:
             for r in csv.DictReader(f):
                 if stocks_only and r["assetType"] != "Stock":
@@ -66,7 +97,9 @@ class PitUniverse:
                     continue
                 if not r["startDate"] or not r["endDate"]:
                     continue
-                self.rows.append(r)
+                raw.append(r)
+        stems = {r["ticker"] for r in raw}
+        self.rows = [r for r in raw if is_common_equity(r["ticker"], stems)]
         self.by_ticker = {}
         for r in self.rows:
             self.by_ticker.setdefault(r["ticker"], []).append(r)

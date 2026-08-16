@@ -1,6 +1,6 @@
 # A1 — base-rate check: **PASS on usable cohorts**, with a large caveat
 
-Full corpus: **62,519 submissions, 2010-09-29 → 2026-08-16, zero gaps.**
+Full corpus: **62,519 submissions, 2010-09-29 -> 2026-08-16, zero gaps.**
 Extraction at `--min-conf 0.75` → 139,491 mentions over 4,316 distinct entities.
 
 > **This supersedes an earlier version of this file written from a partial
@@ -15,24 +15,30 @@ is not constant — 5,585 names in 2015 against 8,238 in 2026 — and a fixed
 denominator overstates the funnel in every recent year.
 
     year    mentions     >=1x     >=2x     >=5x  >=3 authors  universe   % @>=2x
-    2018         123       53       18        6            7     5,932      0.3%
-    2019         149       56       27        6            2     5,971      0.5%
-    2020       1,047      316      161       40           30     6,022      2.7%
-    2021       9,120    1,091      721      333          233     7,475      9.6%
-    2022      10,441    1,187      785      358          241     8,171      9.6%
-    2023       9,150    1,162      810      374          276     7,327     11.1%
-    2024      23,764    2,024    1,541      812          640     6,908     22.3%
-    2025      48,276    2,904    2,309    1,386        1,150     7,273     31.7%
-    2026      37,186    2,487    1,955    1,074          906     8,238     23.7%
+    2018         129       63       19        5            6     5,321      0.4%
+    2019         169       67       32        7            1     5,321      0.6%
+    2020       1,187      380      178       43           32     5,337      3.3%
+    2021       9,997    1,323      831      372          273     6,120     13.6%
+    2022      11,650    1,390      885      386          269     6,490     13.6%
+    2023       9,974    1,359      915      401          302     6,085     15.0%
+    2024      25,799    2,319    1,699      866          697     5,974     28.4%
+    2025      52,177    3,276    2,534    1,482        1,244     6,246     40.6%
+    2026      41,636    2,912    2,332    1,171        1,011     6,926     33.7%
 
-    GATE (5-year horizon, cohorts <= 2021): 721 names,  9.6% of 7,475  -> PASS
-    GATE (3-year horizon, cohorts <= 2023): 810 names, 11.1% of 7,327  -> PASS
+    GATE (5-year horizon, cohorts <= 2021): 831 names, 13.6% of 6,120  -> PASS
+    GATE (3-year horizon, cohorts <= 2023): 915 names, 15.0% of 6,085  -> PASS
+
+The denominator is **common equity only**. Tiingo labels preferred shares,
+warrants, units and exchange test symbols as "Stock", and an unfiltered universe
+carried ~4,000 of them. They matter in both directions: they inflate the
+denominator here, and as control-group members they would have depressed the
+control winner rate and inflated measured lift.
 
 ## Correction 1 — the gate must be judged on cohorts that can have outcomes
 
 The partial-data version reported a 4.2% funnel and a clean pass. On the full
-corpus the widest year is **2025 at 31.7%** — the sub now mentions roughly a
-third of the listed universe annually. Taken at face value that is a MARGINAL,
+corpus the widest year is **2025 at 40.6%** — the sub now mentions roughly two fifths
+of the listed universe annually. Taken at face value that is a MARGINAL,
 not a pass.
 
 It would be the wrong test. A cohort formed in 2025 has no 5-year forward return
@@ -41,11 +47,11 @@ would kill the project over data the study could not use either way.
 
 `a1_base_rate.py` now applies §4.3's horizons and reports the gate only over
 formation cohorts that can carry a forward return. On that basis it passes at
-**9.6% (5-year) and 11.1% (3-year)** — selective, though wider than the partial
+**13.6% (5-year) and 15.0% (3-year)** — selective, though wider than the partial
 data suggested.
 
 **But the trend is itself a finding, and it is unfavourable.** The funnel widens
-monotonically: 0.3% (2018) → 9.6% (2021) → 22.3% (2024) → 31.7% (2025). Whatever
+monotonically: 0.4% (2018) → 13.6% (2021) → 28.4% (2024) → 40.6% (2025). Whatever
 this study concludes about 2019–2023 cohorts, the sub's usefulness *as a filter*
 is decaying, because it increasingly mentions everything. A reader acting on a
 2026 conclusion drawn from 2021 data would be using a screener that no longer
@@ -93,9 +99,9 @@ Cashtags carry ~6% of mentions, as §5.2 predicted.
 
 ## Caveats
 
-- **The §5.2 extraction gate has still not run.** It needs 300 hand-labelled
-  documents. Everything above inherits unmeasured precision/recall. Known FP
-  classes found and fixed are in `phase1/QUALITY.md`.
+- **The §5.2 gate now passes** at precision 0.952 / recall 0.930, but on 38
+  documents labelled non-blind by the same system that wrote the extractor. See
+  `phase1/QUALITY.md` — that is not the independent measurement §5.2 requires.
 - **Submissions only.** §10 is right that comments carry most of the volume and
   most of the bear cases. Adding them will widen every count and may move the
   gate toward MARGINAL even on usable cohorts. This must be re-run after the
