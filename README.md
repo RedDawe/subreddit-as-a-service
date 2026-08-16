@@ -13,7 +13,7 @@ from the whole market.
 | 0 — acquisition, A1, score gate | **done.** 62,519 submissions (2010-09 → 2026-08) + 119,065 comments (2019 → 2022), no gaps |
 | 1 — extraction, entity resolution, panel | **done.** §5.2 gate **passes** at precision 0.955 / recall 0.933 (n=45, self-labelled) |
 | 2 — price data | **done.** Free tier passes the delisting gate; point-in-time universe built |
-| 3 — analyses A2–A8 | **code complete and unit-tested; running.** Blocked only on a 50-request/hour fetch quota |
+| 3 — analyses A2–A8 | **done.** 193 treated vs 188 controls, both horizons. See `artifacts/FINDINGS.md` |
 
 Headline: with comments included, the binding cohorts are **28.5%** (2021,
 5-year) and **33.3%** (2023, 3-year) of the point-in-time listed universe —
@@ -21,8 +21,11 @@ Headline: with comments included, the binding cohorts are **28.5%** (2021,
 the sub discussed more than a quarter of every US-listed common stock at least
 twice. Comments are ~79% of 2021's mention volume. See `phase0/A1_RESULT.md`.
 
-**The lift question (A2–A8) is not yet answered.** All code is written and
-unit-tested; it is waiting on price data at 50 symbols/hour.
+**The lift question is answered: NULL on winners, significant on losers.**
+Size-adjusted lift on 3-baggers is 1.62 [0.83, 4.20] at 5 years — indistinguishable
+from a size-matched draw. The only significant effect is that the sub's names are
+**2.1x more likely to lose 70%+**. And 77.9% of names were first discussed *after*
+the run-up began, median +225 days. Full results: `artifacts/FINDINGS.md`.
 
 `phase0/FEASIBILITY.md` records what was probed in this environment and what
 that changed about the plan. `docs/UNBLOCKING.md` is the short version of what
@@ -84,8 +87,11 @@ vanish), damaging the winner tail as well as the wipeout tail.
       BIAS_REGISTER.md        §8 register - 8 doc biases + 11 found in build
       UNBLOCKING.md           what is still needed, and how to hand it over
     artifacts/
-      mention_panel.csv       deliverable #1 - 27,437 (entity x month) rows
-      label_sample.tsv        300 docs awaiting hand labels for the §5.2 gate
+      FINDINGS.md             the answer, with every number sourced
+      mention_panel.csv       deliverable #1 - 31,115 (entity x month) rows
+      results_core.json       A2/A3/A7/A8 machine-readable
+      results_extra.json      A4/A5/A6/A7-alpha machine-readable
+      label_sample.tsv        300 docs, 45 labelled, for the §5.2 gate
 
 ## Running it
 
