@@ -20,7 +20,7 @@ import json
 import re
 import sys
 
-from stoplist import tier
+from stoplist import SINGLE_LETTERS, tier
 from universe import MANUAL_ALIASES, build
 
 # ---------------------------------------------------------------- text hygiene
@@ -59,6 +59,10 @@ VALUATION_CUE = re.compile(
 MONEY_CUE = re.compile(r"\$\s?\d|\d+\s?(x|%)|\b\d+\.\d+\b")
 # "(NVDA)", "NVDA:", "NVDA -", i.e. syntax that flags a symbol as a symbol
 SYMBOL_SYNTAX = re.compile(r"[(\[]([A-Z]{1,5})[)\]]|\b([A-Z]{2,5})\s*[:\-–]\s")
+# "PS - I know that MSFT is not a value company" matched the dash form and
+# emitted Pluralsight. These prose markers are never tickers in that position.
+PROSE_MARKERS = {"PS", "PPS", "NB", "FYI", "EDIT", "TLDR", "TL", "IMO", "IMHO",
+                 "BTW", "AKA", "ETA", "PSA", "UPDATE", "NOTE", "SOURCE", "RE"}
 
 WORD = re.compile(r"[A-Za-z0-9&]+")
 CASHTAG = re.compile(r"\$([A-Z]{1,5})(?:\.([A-Z]))?\b")
@@ -175,6 +179,26 @@ _SEP = r"(?:[ \t]*[,/][ \t\n]*|[ \t]*\n[ \t]*|[ \t]+)"
 TICKER_RUN = re.compile(r"\b[A-Z]{1,5}\b(?:" + _SEP + r"\b[A-Z]{1,5}\b){2,}")
 
 
+def _is_shouted_prose(toks):
+    """True when a run is capitalised English rather than a list of symbols.
+
+    Pump posts shout: "GO BUY AS MUCH SHARES AS U CAN" contains the sub-run
+    "AS U CAN", all three of which are real tickers, so both the ticker-ratio
+    and any all-caps test pass. Surrounding case cannot discriminate either,
+    because a genuine ticker list is *also* entirely uppercase - testing that
+    rejected "ABBV BABA AMAT ..." outright.
+
+    What separates them is vocabulary: a shouted sentence is made of ordinary
+    English words, a holdings list mostly is not. Some real lists do contain
+    word-like tickers (O, KO, MO, HD in a dividend list), so the bar is a
+    clear majority rather than any occurrence.
+    """
+    if not toks:
+        return True
+    ordinary = sum(1 for t in toks if tier(t) in ("COMMON", "JARGON"))
+    return ordinary / len(toks) > 0.7
+
+
 def ticker_list_spans(text, by_ticker, min_known=3):
     """Character spans of comma-separated runs that are mostly real tickers."""
     spans = []
@@ -182,6 +206,8 @@ def ticker_list_spans(text, by_ticker, min_known=3):
         toks = re.findall(r"\b[A-Z]{1,5}\b", m.group(0))
         known = sum(1 for t in toks if t in by_ticker)
         if known >= min_known and known >= len(toks) * 0.6:
+            if _is_shouted_prose(toks):
+                continue
             spans.append((m.start(), m.end()))
     return spans
 
@@ -302,7 +328,8 @@ class Extractor:
                 evidence.append("name_in_doc")
             if base in doc_cashtags:
                 evidence.append("cashtag_in_doc")
-            if SYMBOL_SYNTAX.search(text[max(0, m.start() - 2): m.end() + 3]):
+            if (base not in PROSE_MARKERS
+                    and SYMBOL_SYNTAX.search(text[max(0, m.start() - 2): m.end() + 3])):
                 evidence.append("symbol_syntax")
             if any(a <= m.start() and m.end() <= b for a, b in runs):
                 evidence.append("ticker_list")
@@ -311,7 +338,11 @@ class Extractor:
             if MONEY_CUE.search(ctx):
                 evidence.append("numeric_context")
 
+            # Membership in a holdings list is itself investment framing: a
+            # vendor ticker sitting in "XOM, SPGI, BTI, O, KO, ..." is being
+            # held, not cited.
             if (sym in VENDOR_ROLE_TICKERS
+                    and "ticker_list" not in evidence
                     and not has_investment_framing(text, *m.span())):
                 yield dict(ticker=sym, entity_id=meta["cik"], channel="bare",
                            confidence=0.50, span=m.span(),
@@ -329,6 +360,11 @@ class Extractor:
 
             if t == "JARGON":
                 if not has_strong:
+                    continue
+                # A single letter inside a list is far more likely to be a word
+                # ("AS U CAN") than a ticker, so list membership alone does not
+                # rescue it - it needs a cashtag or explicit symbol syntax.
+                if base in SINGLE_LETTERS and evidence == ["ticker_list"]:
                     continue
                 conf = 0.80 if "ticker_list" not in evidence else 0.88
             elif t == "COMMON":
