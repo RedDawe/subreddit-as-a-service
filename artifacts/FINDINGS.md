@@ -138,9 +138,7 @@ the lowest.
 - **vs "just buy big liquid stocks"**: the sub wins slightly on 3-baggers
   (15.0% vs 10.8%) and loses badly on wipeouts (9.8% vs 2.7%).
 - **The funnel keeps widening**: the sub discussed 1.3% of US-listed stocks in
-  2019, 28.5% in 2021, **40.7% in 2025**. As a filter it is getting weaker every
-  year — which is exactly why the ranking approach matters more than the
-  membership one.
+  2019, 28.5% in 2021, **40.7% in 2025**. As a filter it gets weaker every year.
 
 ---
 
@@ -160,6 +158,14 @@ the lowest.
 ## Honesty note
 
 Every unfixed bias in this study points the same way — toward making the sub
-look *better* than it is (details in `docs/BIAS_REGISTER.md`). So the "mentions
-mean nothing" result is solid, and the wipeout result is if anything understated.
-The ranking result is the one that could still go either way with more data.
+look *better* than it is (details in `docs/BIAS_REGISTER.md`). So the negative
+results are solid: a favourable thumb on the scale still produced nothing.
+
+Where the numbers are weakest is the 25-stock portfolio comparisons in §2. Those
+are small enough that "no evidence of an effect" should not be read as "proof of
+no effect".
+
+One thing this study does **not** examine: whether reading the sub is useful for
+learning, for narratives, or for finding the bear case on something you already
+own. That is a different question and needs a different method — §1.3 of the
+design doc says so explicitly. Nothing here argues against it.
