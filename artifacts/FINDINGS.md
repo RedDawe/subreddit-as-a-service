@@ -1,7 +1,8 @@
 # Is r/ValueInvesting a useful stock screener?
 
-**Short answer: not as a list of "what got mentioned". Possibly yes as a list of
-"what got mentioned *most*".**
+**Short answer: no.** Being mentioned tells you nothing. Being mentioned *most*
+sorts the sub's own names usefully, but gets you no further than "buy the 25
+biggest US stocks" — which you can do without reading anything.
 
 ---
 
@@ -48,7 +49,7 @@ flips. This is why the size adjustment isn't optional.
 
 ---
 
-## 2. But ranking them does something
+## 2. Ranking sorts the names — but so does market cap
 
 Instead of "was it mentioned", ask "was it one of the most-discussed". Sorting
 the same 193 stocks by how many different people wrote about them, 5-year:
@@ -71,12 +72,36 @@ ranking measures had none at all.
 That reframes finding #1: the "twice as likely to blow up" result is *entirely*
 the thinly-discussed tail. Stocks a dozen people wrote about did not blow up.
 
-**How much to believe this.** The wipeout pattern is consistent across all four
-ranking measures and both horizons, which is reassuring. The *winner* side is
-not established — size-adjusted lift for the top 10 is 3.20 but the range runs
-0.64 to 11.56, so it includes 1.0. With 10 stocks in a bucket you cannot expect
-better. Treat "ranking avoids disasters" as the finding and "ranking finds
-winners" as an untested hypothesis worth more data.
+### …but you could have got the same result without reading the sub
+
+The obvious objection: the most-discussed stocks are mostly the biggest stocks,
+and big US stocks did well over this period. So is the ranking adding anything?
+
+Tested directly — the sub's top 25 against simply buying the 25 largest stocks:
+
+| 5-year portfolio | 3-baggers | wipeouts | beat S&P | median |
+|---|---|---|---|---|
+| sub's top 25 | 24.0% | 0% | 44.0% | +87% |
+| the 25 biggest | 24.0% | 12% | 44.0% | +98% |
+| the 25 biggest the sub *never* discussed | 16.0% | 0% | 44.0% | **+102%** |
+
+**Identical.** Same 3-bagger rate, same beat-the-market rate, and the biggest
+stocks the sub never mentioned actually returned *more*. The 3-year table is the
+same story with noisier numbers.
+
+Even the "no wipeouts" result doesn't survive: the 25 biggest stocks the sub
+never discussed also had zero wipeouts. Avoiding disasters is a **size** effect,
+not a subreddit effect. You get it by buying big companies, whether or not
+anyone on Reddit mentioned them.
+
+The top 25 is not *purely* the biggest — 5 of them sit outside the top 100 by
+size (GME, TME, DD, MMM, TGT) — but the median one ranks 26th, and the overlap
+is enough that the ranking adds nothing measurable on top of "buy large caps".
+
+**So: ranking sorts the sub's own names usefully, but it does not beat a screen
+you could run in ten seconds without reading anything.** With 25 stocks per
+bucket these numbers are noisy, so this isn't proof of no effect — but there is
+no evidence of one.
 
 ---
 
@@ -121,11 +146,11 @@ the lowest.
 
 ## 6. What I'd do next
 
-1. **Test the ranking properly.** This is the promising result and it's the
-   least-tested. It also works on recent years: you can rank 2025 names today
-   even though you can't score their 5-year return yet. Concretely — take the
-   top 25 by author count each month from 2019 on, and track that as a rolling
-   list.
+1. **Find a ranking that isn't just market cap.** Plain popularity tracks size
+   too closely to add anything. The interesting version is a ranking of what the
+   sub discusses *relative to* how big the company is — a name 10 people wrote
+   about that is 400th by size is a genuine signal; the same attention on Apple
+   is not. That is testable with the data already here.
 2. **Separate bullish from bearish mentions.** Everything above counts any
    mention. "Is X a value trap?" currently counts the same as "I'm buying X".
    Given #2, this could matter a lot.
