@@ -81,6 +81,7 @@ vanish), damaging the winner tail as well as the wipeout tail.
       analyses.py             A2 lift, A3 recall, A7 portfolio, A8 dose
       analyses_extra.py       A4 timing, A5 novelty, A6 screens, A7 alpha
       rank_analysis.py        A9 - does rank beat membership? (added, not in doc)
+      export_companies.py     per-company CSV export
       factors.py              FF5 + momentum (Ken French, free)
       writeup.py              assembles the final report from results
       test_outcomes.py        8 tests on the delisting/acquisition paths
@@ -91,6 +92,9 @@ vanish), damaging the winner tail as well as the wipeout tail.
       UNBLOCKING.md           what is still needed, and how to hand it over
     artifacts/
       FINDINGS.md             the answer, with every number sourced
+      REDDIT_POST.md          plain-language summary for a general audience
+      companies.csv           per-company results - open in Excel and check
+      companies_README.md     what every column means
       mention_panel.csv       deliverable #1 - 31,115 (entity x month) rows
       results_core.json       A2/A3/A7/A8 machine-readable
       results_extra.json      A4/A5/A6/A7-alpha machine-readable

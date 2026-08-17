@@ -31,5 +31,7 @@ python3 phase3/analyses_extra.py data/analysis_table.ndjson data/prices \
     --out artifacts/results_extra.json
 python3 phase3/rank_analysis.py data/analysis_table.ndjson \
     data/mentions_posts.ndjson data/posts/posts.ndjson --out artifacts/results_rank.json
+python3 phase3/export_companies.py data/analysis_table.ndjson \
+    data/mentions_posts.ndjson data/posts/posts.ndjson artifacts/companies.csv
 python3 phase3/writeup.py artifacts/results_core.json artifacts/results_extra.json \
     artifacts/WRITEUP.md --horizon 5
